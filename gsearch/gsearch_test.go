@@ -7,25 +7,38 @@ import (
 	"testing"
 )
 
-func TestReadSeq(t *testing.T) {
-	seq := "AAAA"
+type TestSequence struct {
+	name string
+	seq  string
+}
 
-	f := bytes.NewBufferString(">Foo\n" + seq + "\n")
+func (t *TestSequence) AssertEqual(test *testing.T, s *linear.Seq) {
+	if s.Annotation.ID != t.name {
+		test.Errorf("expecting name %s, readSeq returns %s", t.name, s.Annotation.ID)
+	}
+
+	if s.Seq.String() != t.seq {
+		test.Errorf("expecting sequence %s, readSeq returns %s", t.seq, s.Seq.String())
+	}
+}
+
+func TestReadSeq(t *testing.T) {
+	seq := TestSequence{name: "Foo", seq: "AAAA"}
+
+	f := bytes.NewBufferString(">" + seq.name + "\n" + seq.seq + "\n")
 
 	s := readSeq(bufio.NewReader(f))
 
-	if s.Seq.String() != seq {
-		t.Fatalf("expecting %s, readSeq returns %s", seq, s.Seq.String())
-	}
+	seq.AssertEqual(t, s)
 
 }
 
 func TestScanSeq(t *testing.T) {
 
-	seq1 := "AAAA"
-	seq2 := "BBBB"
+	seq1 := TestSequence{name: "Foo", seq: "AAAA"}
+	seq2 := TestSequence{name: "Bar", seq: "GGGG"}
 
-	f := bytes.NewBufferString(">Foo\n" + seq1 + "\n>Bar\n" + seq2 + "\n")
+	f := bytes.NewBufferString(">" + seq1.name + "\n" + seq1.seq + "\n>" + seq2.name + "\n" + seq2.seq + "\n")
 
 	cSeqs := make(chan *linear.Seq)
 
@@ -35,15 +48,11 @@ func TestScanSeq(t *testing.T) {
 
 	s := <-cSeqs
 
-	if s.Seq.String() != seq1 {
-		t.Fatalf("expecting %s, readSeq sends %s", seq1, s.Seq.String())
-	}
+	seq1.AssertEqual(t, s)
 
 	s = <-cSeqs
 
-	if s.Seq.String() != seq2 {
-		t.Fatalf("expecting %s, readSeq sends %s", seq2, s.Seq.String())
-	}
+	seq2.AssertEqual(t, s)
 
 	wg.Wait()
 }
