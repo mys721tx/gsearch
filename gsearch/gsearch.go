@@ -16,6 +16,7 @@ import (
 	"github.com/biogo/biogo/seq/linear"
 	"log"
 	"os"
+	"sync"
 )
 
 var (
@@ -25,6 +26,7 @@ var (
 	mismatch = flag.Int("mismatch", -1, "score for mismatch")
 	gap      = flag.Int("gap", -2, "score for gap")
 	gapopen  = flag.Int("gap_open", 0, "score for gap open")
+	wg       sync.WaitGroup
 )
 
 func makeScoreMatrix() *align.Linear {
@@ -51,7 +53,9 @@ func readSeq(f *os.File) *linear.Seq {
 	return s.(*linear.Seq)
 }
 
-func scanSeq(f *os.File, seqs chan<- *linear.Seq, done chan<- bool) {
+func scanSeq(f *os.File, seqs chan<- *linear.Seq) {
+	defer wg.Done()
+
 	r := fasta.NewReader(f, linear.NewSeq("", nil, alphabet.DNAgapped))
 
 	sc := seqio.NewScanner(r)
@@ -69,26 +73,24 @@ func scanSeq(f *os.File, seqs chan<- *linear.Seq, done chan<- bool) {
 			seqs <- s.(*linear.Seq)
 		}
 	}
-	done <- true
+	close(seqs)
 }
 
-//func alignSW(ref *linear.Seq, score align.SWAffine, seqs <-chan *linear.Seq) {
-//	for {
-//		select {
-//		case tgt := <-seqs:
-//			aln, err := score.Align(ref, tgt)
-//
-//			if err != nil {
-//				log.Fatalf("failed to align: %v", err)
-//			}
-//
-//			fmt.Printf("%s\n", aln)
-//			fa := align.Format(ref, tgt, aln, '-')
-//			fmt.Printf("%s\n%s\n", fa[0], fa[1])
-//		default:
-//		}
-//	}
-//}
+func alignSW(ref *linear.Seq, score align.SWAffine, seqs <-chan *linear.Seq) {
+	defer wg.Done()
+
+	for tgt := range seqs {
+		aln, err := score.Align(ref, tgt)
+
+		if err != nil {
+			log.Fatalf("failed to align: %v", err)
+		}
+
+		fmt.Printf("%s\n", aln)
+		fa := align.Format(ref, tgt, aln, '-')
+		fmt.Printf("%s\n%s\n", fa[0], fa[1])
+	}
+}
 
 func main() {
 	flag.Parse()
@@ -114,25 +116,9 @@ func main() {
 
 	csTgt := make(chan *linear.Seq)
 
-	done := make(chan bool)
+	wg.Add(2)
+	go scanSeq(fTgt, csTgt)
+	go alignSW(sRef, smith, csTgt)
 
-	go scanSeq(fTgt, csTgt, done)
-
-	for {
-		select {
-		case tgt := <-csTgt:
-			aln, err := smith.Align(sRef, tgt)
-
-			if err != nil {
-				log.Fatalf("failed to align: %v", err)
-			}
-
-			fmt.Printf("%s\n", aln)
-			fa := align.Format(sRef, tgt, aln, '-')
-			fmt.Printf("%s\n%s\n", fa[0], fa[1])
-		case <-done:
-			return
-		default:
-		}
-	}
+	wg.Wait()
 }
