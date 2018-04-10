@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/biogo/biogo/align"
 	"github.com/biogo/biogo/alphabet"
+	"github.com/biogo/biogo/io/seqio"
 	"github.com/biogo/biogo/io/seqio/fasta"
 	"github.com/biogo/biogo/seq/linear"
 	"log"
@@ -38,7 +39,6 @@ func makeScoreMatrix() *align.Linear {
 }
 
 func readSeq(f *os.File) *linear.Seq {
-
 	r := fasta.NewReader(f, linear.NewSeq("", nil, alphabet.DNAgapped))
 
 	s, err := r.Read()
@@ -51,8 +51,52 @@ func readSeq(f *os.File) *linear.Seq {
 	return s.(*linear.Seq)
 }
 
+func scanSeq(f *os.File, seqs chan<- *linear.Seq, done chan<- bool) {
+	r := fasta.NewReader(f, linear.NewSeq("", nil, alphabet.DNAgapped))
+
+	sc := seqio.NewScanner(r)
+
+	fmt.Println("scanning")
+
+	for sc.Next() {
+		s := sc.Seq()
+		err := sc.Error()
+
+		if err != nil {
+			log.Fatalf("failed during read: %v", err)
+		} else {
+			// Type assertion to linear.Seq
+			seqs <- s.(*linear.Seq)
+		}
+	}
+	done <- true
+}
+
+//func alignSW(ref *linear.Seq, score align.SWAffine, seqs <-chan *linear.Seq) {
+//	for {
+//		select {
+//		case tgt := <-seqs:
+//			aln, err := score.Align(ref, tgt)
+//
+//			if err != nil {
+//				log.Fatalf("failed to align: %v", err)
+//			}
+//
+//			fmt.Printf("%s\n", aln)
+//			fa := align.Format(ref, tgt, aln, '-')
+//			fmt.Printf("%s\n%s\n", fa[0], fa[1])
+//		default:
+//		}
+//	}
+//}
+
 func main() {
 	flag.Parse()
+
+	smith := align.SWAffine{
+		Matrix:  *makeScoreMatrix(),
+		GapOpen: *gapopen,
+	}
 
 	fRef, err := os.Open(*ref)
 
@@ -68,20 +112,27 @@ func main() {
 		log.Fatalf("failed to open %q: %v", *ref, err)
 	}
 
-	sTgt := readSeq(fTgt)
+	csTgt := make(chan *linear.Seq)
 
-	smith := align.SWAffine{
-		Matrix:  *makeScoreMatrix(),
-		GapOpen: *gapopen,
+	done := make(chan bool)
+
+	go scanSeq(fTgt, csTgt, done)
+
+	for {
+		select {
+		case tgt := <-csTgt:
+			aln, err := smith.Align(sRef, tgt)
+
+			if err != nil {
+				log.Fatalf("failed to align: %v", err)
+			}
+
+			fmt.Printf("%s\n", aln)
+			fa := align.Format(sRef, tgt, aln, '-')
+			fmt.Printf("%s\n%s\n", fa[0], fa[1])
+		case <-done:
+			return
+		default:
+		}
 	}
-
-	aln, err := smith.Align(sRef, sTgt)
-
-	if err != nil {
-		log.Fatalf("failed to align: %v", err)
-	}
-
-	fmt.Printf("%s\n", aln)
-	fa := align.Format(sRef, sTgt, aln, '-')
-	fmt.Printf("%s\n%s\n", fa[0], fa[1])
 }
