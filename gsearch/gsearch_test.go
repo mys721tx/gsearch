@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"github.com/biogo/biogo/seq/linear"
 	"testing"
 )
@@ -10,6 +11,16 @@ import (
 type TestSequence struct {
 	name string
 	seq  string
+}
+
+func joinSeq(seqs ...TestSequence) *bytes.Buffer {
+	s := ""
+
+	for _, seq := range seqs {
+		s += fmt.Sprintf(">%s\n%s\n", seq.name, seq.seq)
+	}
+
+	return bytes.NewBufferString(s)
 }
 
 func (t *TestSequence) AssertEqual(test *testing.T, s *linear.Seq) {
@@ -25,7 +36,7 @@ func (t *TestSequence) AssertEqual(test *testing.T, s *linear.Seq) {
 func TestReadSeq(t *testing.T) {
 	seq := TestSequence{name: "Foo", seq: "AAAA"}
 
-	f := bytes.NewBufferString(">" + seq.name + "\n" + seq.seq + "\n")
+	f := joinSeq(seq)
 
 	s := readSeq(bufio.NewReader(f))
 
@@ -38,7 +49,7 @@ func TestScanSeq(t *testing.T) {
 	seq1 := TestSequence{name: "Foo", seq: "AAAA"}
 	seq2 := TestSequence{name: "Bar", seq: "GGGG"}
 
-	f := bytes.NewBufferString(">" + seq1.name + "\n" + seq1.seq + "\n>" + seq2.name + "\n" + seq2.seq + "\n")
+	f := joinSeq(seq1, seq2)
 
 	cSeqs := make(chan *linear.Seq)
 
