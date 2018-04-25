@@ -1,10 +1,11 @@
-package main
+package seqio
 
 import (
 	"bufio"
 	"bytes"
 	"fmt"
 	"github.com/biogo/biogo/seq/linear"
+	"sync"
 	"testing"
 )
 
@@ -38,13 +39,15 @@ func TestReadSeq(t *testing.T) {
 
 	f := joinSeq(seq)
 
-	s := readSeq(bufio.NewReader(f))
+	s := ReadSeq(bufio.NewReader(f))
 
 	seq.AssertEqual(t, s)
 
 }
 
 func TestScanSeq(t *testing.T) {
+
+	var wg sync.WaitGroup
 
 	seq1 := TestSequence{name: "Foo", seq: "AAAA"}
 	seq2 := TestSequence{name: "Bar", seq: "GGGG"}
@@ -55,7 +58,7 @@ func TestScanSeq(t *testing.T) {
 
 	wg.Add(1)
 
-	go scanSeq(bufio.NewReader(f), cSeqs)
+	go ScanSeq(bufio.NewReader(f), cSeqs, &wg)
 
 	s := <-cSeqs
 

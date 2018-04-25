@@ -10,11 +10,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/biogo/biogo/align"
-	"github.com/biogo/biogo/alphabet"
-	"github.com/biogo/biogo/io/seqio"
-	"github.com/biogo/biogo/io/seqio/fasta"
 	"github.com/biogo/biogo/seq/linear"
-	"io"
+	"github.com/mys721tx/gsearch/seqio"
 	"log"
 	"os"
 	"sync"
@@ -42,40 +39,6 @@ func makeScoreMatrix() *align.Linear {
 	return &m
 }
 
-func readSeq(f io.Reader) *linear.Seq {
-	r := fasta.NewReader(f, linear.NewSeq("", nil, alphabet.DNAgapped))
-
-	s, err := r.Read()
-
-	if err != nil {
-		log.Fatalf("failed to read sequence: %v", err)
-	}
-
-	// Type assertion to linear.Seq
-	return s.(*linear.Seq)
-}
-
-func scanSeq(f io.Reader, seqs chan<- *linear.Seq) {
-	defer wg.Done()
-
-	r := fasta.NewReader(f, linear.NewSeq("", nil, alphabet.DNAgapped))
-
-	sc := seqio.NewScanner(r)
-
-	for sc.Next() {
-		s := sc.Seq()
-		err := sc.Error()
-
-		if err != nil {
-			log.Fatalf("failed during read: %v", err)
-		} else {
-			// Type assertion to linear.Seq
-			seqs <- s.(*linear.Seq)
-		}
-	}
-	close(seqs)
-}
-
 func alignSW(ref *linear.Seq, score align.NWAffine, seqs <-chan *linear.Seq) {
 	defer wg.Done()
 
@@ -95,7 +58,7 @@ func alignSW(ref *linear.Seq, score align.NWAffine, seqs <-chan *linear.Seq) {
 func main() {
 	flag.Parse()
 
-	smith := align.SWAffine{
+	nw := align.NWAffine{
 		Matrix:  *makeScoreMatrix(),
 		GapOpen: *gapopen,
 	}
@@ -106,7 +69,7 @@ func main() {
 		log.Fatalf("failed to open %q: %v", *ref, err)
 	}
 
-	sRef := readSeq(fRef)
+	sRef := seqio.ReadSeq(fRef)
 
 	fTgt, err := os.Open(*tgt)
 
@@ -117,8 +80,8 @@ func main() {
 	csTgt := make(chan *linear.Seq)
 
 	wg.Add(2)
-	go scanSeq(fTgt, csTgt)
-	go alignSW(sRef, smith, csTgt)
+	go seqio.ScanSeq(fTgt, csTgt, &wg)
+	go alignSW(sRef, nw, csTgt)
 
 	wg.Wait()
 }
