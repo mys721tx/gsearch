@@ -36,9 +36,10 @@ func ReadSeq(f io.Reader) *linear.Seq {
 	return seq
 }
 
-// ScanSeq scans sequences from a fasta file.
-func ScanSeq(f io.Reader, seqs chan<- *linear.Seq, wg *sync.WaitGroup) {
+// ScanSeq scans sequences from a fasta file to a channel.
+func ScanSeq(f io.Reader, out chan<- *linear.Seq, wg *sync.WaitGroup) {
 	defer wg.Done()
+	defer close(out)
 
 	r := fasta.NewReader(f, linear.NewSeq("", nil, alphabet.DNAgapped))
 
@@ -52,8 +53,21 @@ func ScanSeq(f io.Reader, seqs chan<- *linear.Seq, wg *sync.WaitGroup) {
 			log.Fatalf("failed during read: %v", err)
 		} else {
 			// Type assertion to linear.Seq
-			seqs <- s.(*linear.Seq)
+			out <- s.(*linear.Seq)
 		}
 	}
-	close(seqs)
+}
+
+// WriteSeq writes sequences from a channel to a fasta file.
+func WriteSeq(f io.Writer, in <-chan *linear.Seq, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	w := fasta.NewWriter(f, 80)
+
+	for seq := range in {
+		_, err := w.Write(seq)
+		if err != nil {
+			log.Fatalf("failed to write: %v", err)
+		}
+	}
 }
