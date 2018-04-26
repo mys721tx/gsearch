@@ -1,7 +1,6 @@
 package seqio
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"github.com/biogo/biogo/seq/linear"
@@ -26,12 +25,17 @@ func joinSeq(seqs ...TestSequence) *bytes.Buffer {
 
 func (t *TestSequence) AssertEqual(test *testing.T, s *linear.Seq) {
 	if s.Annotation.ID != t.name {
-		test.Errorf("expecting name %s, readSeq returns %s", t.name, s.Annotation.ID)
+		test.Errorf(
+			"expecting name %s, ReadSeq returns %s", t.name, s.Annotation.ID)
 	}
 
 	if s.Seq.String() != t.seq {
-		test.Errorf("expecting sequence %s, readSeq returns %s", t.seq, s.Seq.String())
+		test.Errorf("expecting sequence %s, ReadSeq returns %s", t.seq, s.Seq.String())
 	}
+}
+
+func newSeqLinear(s *linear.Seq) TestSequence {
+	return TestSequence{name: s.Annotation.ID, seq: s.Seq.String()}
 }
 
 func TestReadSeq(t *testing.T) {
@@ -39,7 +43,7 @@ func TestReadSeq(t *testing.T) {
 
 	f := joinSeq(seq)
 
-	s := ReadSeq(bufio.NewReader(f))
+	s := ReadSeq(f)
 
 	seq.AssertEqual(t, s)
 
@@ -54,17 +58,17 @@ func TestScanSeq(t *testing.T) {
 
 	f := joinSeq(seq1, seq2)
 
-	cSeqs := make(chan *linear.Seq)
+	out := make(chan *linear.Seq)
 
 	wg.Add(1)
 
-	go ScanSeq(bufio.NewReader(f), cSeqs, &wg)
+	go ScanSeq(f, out, &wg)
 
-	s := <-cSeqs
+	s := <-out
 
 	seq1.AssertEqual(t, s)
 
-	s = <-cSeqs
+	s = <-out
 
 	seq2.AssertEqual(t, s)
 
