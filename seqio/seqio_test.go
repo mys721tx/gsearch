@@ -3,6 +3,7 @@ package seqio
 import (
 	"bytes"
 	"fmt"
+	"github.com/biogo/biogo/alphabet"
 	"github.com/biogo/biogo/seq/linear"
 	"sync"
 	"testing"
@@ -73,4 +74,33 @@ func TestScanSeq(t *testing.T) {
 	seq2.AssertEqual(t, s)
 
 	wg.Wait()
+}
+
+func TestWriteSeq(t *testing.T) {
+
+	var wg sync.WaitGroup
+
+	seq1 := linear.NewSeq("Foo", []alphabet.Letter("AAAA"), alphabet.DNA)
+	seq2 := linear.NewSeq("Bar", []alphabet.Letter("GGGG"), alphabet.DNA)
+
+	fExpected := joinSeq(newSeqLinear(seq1), newSeqLinear(seq2))
+
+	in := make(chan *linear.Seq)
+
+	wg.Add(1)
+
+	f := bytes.NewBufferString("")
+
+	go WriteSeq(f, in, &wg)
+
+	in <- seq1
+	in <- seq2
+
+	close(in)
+
+	wg.Wait()
+
+	if f.String() != fExpected.String() {
+		t.Errorf("expecting sequence %s, WriteSeq returns %s", fExpected.String(), f.String())
+	}
 }
