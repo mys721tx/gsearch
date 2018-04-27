@@ -7,6 +7,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"github.com/biogo/biogo/seq/linear"
 	"github.com/mys721tx/gsearch/seqio"
@@ -54,12 +55,15 @@ func main() {
 
 	defer fout.Close()
 
+	w := bufio.NewWriter(fout)
+	defer w.Flush()
+
 	cin := make(chan *linear.Seq)
 	cout := make(chan *linear.Seq)
 
 	wg.Add(3)
 	go seqio.ScanSeq(fin, cin, &wg)
 	go deRep(cin, cout)
-	go seqio.WriteSeq(fout, cout, &wg)
+	go seqio.WriteSeq(w, cout, &wg)
 	wg.Wait()
 }
