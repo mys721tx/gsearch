@@ -9,10 +9,14 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
+	"github.com/biogo/biogo/alphabet"
 	"github.com/biogo/biogo/seq/linear"
 	"github.com/mys721tx/gsearch/seqio"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -22,20 +26,46 @@ var (
 	wg   sync.WaitGroup
 )
 
+type cluster struct {
+	name string
+	size int
+	//seqs *linear.Seq
+}
+
+func parseSeq(seq *linear.Seq) (string, int, string) {
+	// hard coded for now
+	desc := strings.Split(seq.Annotation.ID, ";size=")
+	i, _ := strconv.ParseInt(desc[1], 10, 0)
+	s := seq.String()
+	return desc[0], int(i), s
+}
+
 // derep receives a sequence from a channel and builds a map.
 // If a sequence is in a map, if not, output it.
 func deRep(in <-chan *linear.Seq, out chan<- *linear.Seq) {
 	defer wg.Done()
 	defer close(out)
 
-	rep := make(map[string]bool)
+	rep := make(map[string]*cluster)
 
 	for seq := range in {
-		if !rep[seq.Seq.String()] {
-			rep[seq.Seq.String()] = true
-			out <- seq
+		name, size, s := parseSeq(seq)
+
+		if _, prs := rep[s]; !prs {
+			//rep[s] = &cluster{name: name, size: size, seqs: seq}
+			rep[s] = &cluster{name: name, size: size}
+		} else {
+			rep[s].size += size
 		}
 	}
+
+	for s, v := range rep {
+		out <- linear.NewSeq(
+			fmt.Sprintf("%v;size=%d", v.name, v.size),
+			[]alphabet.Letter(s),
+			alphabet.DNA)
+	}
+
 }
 
 func main() {
