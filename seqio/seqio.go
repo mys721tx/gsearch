@@ -11,8 +11,8 @@ import (
 	"github.com/biogo/biogo/io/seqio"
 	"github.com/biogo/biogo/io/seqio/fasta"
 	"github.com/biogo/biogo/seq/linear"
+	"github.com/golang/glog"
 	"io"
-	"log"
 	"sync"
 )
 
@@ -23,14 +23,14 @@ func ReadSeq(f io.Reader) *linear.Seq {
 	s, err := r.Read()
 
 	if err != nil {
-		log.Fatalf("failed to read sequence: %v", err)
+		glog.Fatalf("failed to read sequence: %v", err)
 	}
 
 	// Type assertion to linear.Seq
 	seq := s.(*linear.Seq)
 
 	if v, p := seq.Validate(); !v {
-		log.Fatalf("invalidate symbol: position %v", p)
+		glog.Fatalf("invalidate symbol: position %v", p)
 	}
 
 	return seq
@@ -47,10 +47,9 @@ func ScanSeq(f io.Reader, out chan<- *linear.Seq, wg *sync.WaitGroup) {
 
 	for sc.Next() {
 		s := sc.Seq()
-		err := sc.Error()
 
-		if err != nil {
-			log.Fatalf("failed during read: %v", err)
+		if err := sc.Error(); err != nil {
+			glog.Warningf("failed during read: %v", err)
 		} else {
 			// Type assertion to linear.Seq
 			out <- s.(*linear.Seq)
@@ -65,9 +64,8 @@ func WriteSeq(f io.Writer, in <-chan *linear.Seq, wg *sync.WaitGroup) {
 	w := fasta.NewWriter(f, 80)
 
 	for seq := range in {
-		_, err := w.Write(seq)
-		if err != nil {
-			log.Fatalf("failed to write: %v", err)
+		if _, err := w.Write(seq); err != nil {
+			glog.Warningf("failed to write: %v", err)
 		}
 	}
 }
