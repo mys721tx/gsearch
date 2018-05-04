@@ -7,13 +7,14 @@
 package seqio
 
 import (
+	"io"
+	"sync"
+
 	"github.com/biogo/biogo/alphabet"
 	"github.com/biogo/biogo/io/seqio"
 	"github.com/biogo/biogo/io/seqio/fasta"
 	"github.com/biogo/biogo/seq/linear"
 	"github.com/golang/glog"
-	"io"
-	"sync"
 )
 
 // ReadSeq reads a sequence from a fasta file.

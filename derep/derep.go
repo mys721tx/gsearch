@@ -10,14 +10,15 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/biogo/biogo/alphabet"
-	"github.com/biogo/biogo/seq/linear"
-	"github.com/mys721tx/gsearch/seqio"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/biogo/biogo/alphabet"
+	"github.com/biogo/biogo/seq/linear"
+	"github.com/mys721tx/gsearch/seqio"
 )
 
 var (

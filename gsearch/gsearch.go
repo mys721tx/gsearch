@@ -9,18 +9,18 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/biogo/biogo/align"
-	"github.com/biogo/biogo/seq/linear"
-	"github.com/mys721tx/gsearch/seqio"
 	"log"
 	"os"
 	"sync"
+
+	"github.com/biogo/biogo/align"
+	"github.com/biogo/biogo/seq/linear"
+	"github.com/mys721tx/gsearch/seqio"
 )
 
 var (
 	ref      = flag.String("reference", "", "path to the reference sequence fasta file")
 	tgt      = flag.String("target", "", "path to the target sequence fasta file")
-	output   = flag.String("output", "", "path to the output fasta file")
 	match    = flag.Int("match", 2, "score for match")
 	mismatch = flag.Int("mismatch", -1, "score for mismatch")
 	gap      = flag.Int("gap", -2, "score for gap")

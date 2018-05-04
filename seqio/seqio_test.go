@@ -3,10 +3,11 @@ package seqio
 import (
 	"bytes"
 	"fmt"
-	"github.com/biogo/biogo/alphabet"
-	"github.com/biogo/biogo/seq/linear"
 	"sync"
 	"testing"
+
+	"github.com/biogo/biogo/alphabet"
+	"github.com/biogo/biogo/seq/linear"
 )
 
 type TestSequence struct {
