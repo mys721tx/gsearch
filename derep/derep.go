@@ -116,7 +116,7 @@ func main() {
 	}
 
 	defer func() {
-		err := fout.Close()
+		err = fout.Close()
 
 		if err != nil {
 			log.Fatalf("failed to close %q: %v", *pout, err)
@@ -124,14 +124,6 @@ func main() {
 	}()
 
 	w := bufio.NewWriter(fout)
-
-	defer func() {
-		err := w.Flush()
-
-		if err != nil {
-			log.Fatalf("failed to flush %q: %v", *pout, err)
-		}
-	}()
 
 	cin := make(chan *linear.Seq)
 	cout := make(chan *linear.Seq)
@@ -141,4 +133,11 @@ func main() {
 	go deRep(cin, cout)
 	go seqio.WriteSeq(w, cout, &wg)
 	wg.Wait()
+
+	err = w.Flush()
+
+	if err != nil {
+		log.Fatalf("failed to flush %q: %v", *pout, err)
+	}
+
 }
