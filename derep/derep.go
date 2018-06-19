@@ -49,8 +49,15 @@ type cluster struct {
 func parseSeq(seq *linear.Seq) (string, int, string) {
 	// hard coded for now
 	desc := strings.Split(seq.Annotation.ID, ";size=")
-	i, _ := strconv.ParseInt(desc[1], 10, 0)
+	i, err := strconv.ParseInt(desc[1], 10, 0)
+
 	s := seq.String()
+
+	// If unable to get cluster size, default to 1
+	if err != nil {
+		i = 1
+	}
+
 	return desc[0], int(i), s
 }
 
@@ -108,10 +115,23 @@ func main() {
 		log.Fatalf("failed to open %q: %v", *pout, err)
 	}
 
-	defer fout.Close()
+	defer func() {
+		err := fout.Close()
+
+		if err != nil {
+			log.Fatalf("failed to close %q: %v", *pout, err)
+		}
+	}()
 
 	w := bufio.NewWriter(fout)
-	defer w.Flush()
+
+	defer func() {
+		err := w.Flush()
+
+		if err != nil {
+			log.Fatalf("failed to flush %q: %v", *pout, err)
+		}
+	}()
 
 	cin := make(chan *linear.Seq)
 	cout := make(chan *linear.Seq)
