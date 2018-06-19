@@ -85,13 +85,24 @@ func deRep(in <-chan *linear.Seq, out chan<- *linear.Seq) {
 func main() {
 	flag.Parse()
 
-	fin, err := os.Open(*pin)
+	var fin, fout *os.File
+	var err error
+
+	if *pin == "" {
+		fin = os.Stdin
+	} else {
+		fin, err = os.Open(*pin)
+	}
 
 	if err != nil {
 		log.Fatalf("failed to open %q: %v", *pin, err)
 	}
 
-	fout, err := os.Create(*pout)
+	if *pout == "" {
+		fout = os.Stdin
+	} else {
+		fout, err = os.Create(*pout)
+	}
 
 	if err != nil {
 		log.Fatalf("failed to open %q: %v", *pout, err)
