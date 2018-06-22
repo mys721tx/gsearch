@@ -47,18 +47,40 @@ type cluster struct {
 }
 
 func parseSeq(seq *linear.Seq) (string, int, string) {
+
+	var name string
+	var size int
+	var err error
+
 	// hard coded for now
-	desc := strings.Split(seq.Annotation.ID, ";size=")
-	i, err := strconv.ParseInt(desc[1], 10, 0)
+	switch desc := strings.Split(seq.Annotation.ID, ";size="); len(desc) {
+	case 0:
+		{
+
+			size = 1
+			name = "sequence"
+		}
+	case 1:
+		{
+			size = 1
+			name = desc[0]
+		}
+	case 2:
+		{
+			size, err = strconv.Atoi(desc[1])
+			// If unable to get cluster size, default to 1
+			if err != nil {
+				size = 1
+			}
+			name = desc[0]
+		}
+	default:
+		log.Fatalf("Unrecognized annotation: %v", seq.Annotation.ID)
+	}
 
 	s := seq.String()
 
-	// If unable to get cluster size, default to 1
-	if err != nil {
-		i = 1
-	}
-
-	return desc[0], int(i), s
+	return name, size, s
 }
 
 // derep receives a sequence from a channel and builds a map.
