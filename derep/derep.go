@@ -35,9 +35,17 @@ import (
 )
 
 var (
-	pin  = flag.String("in", "", "path to the sequence fasta file")
-	pout = flag.String("out", "", "path to the output fasta file")
-	wg   sync.WaitGroup
+	pin = flag.String(
+		"in",
+		"",
+		"path to the sequence fasta file, default to stdin.",
+	)
+	pout = flag.String(
+		"out",
+		"",
+		"path to the output fasta file, default to stdout.",
+	)
+	wg sync.WaitGroup
 )
 
 type cluster struct {
@@ -106,7 +114,8 @@ func deRep(in <-chan *linear.Seq, out chan<- *linear.Seq) {
 		out <- linear.NewSeq(
 			fmt.Sprintf("%v;size=%d", v.name, v.size),
 			[]alphabet.Letter(s),
-			alphabet.DNA)
+			alphabet.DNA,
+		)
 	}
 
 }
