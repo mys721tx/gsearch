@@ -16,7 +16,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-package seqio
+package seqio_test
 
 import (
 	"bytes"
@@ -26,6 +26,8 @@ import (
 
 	"github.com/biogo/biogo/alphabet"
 	"github.com/biogo/biogo/seq/linear"
+
+	"github.com/mys721tx/gsearch/seqio"
 )
 
 type TestSequence struct {
@@ -54,7 +56,7 @@ func (t *TestSequence) AssertEqual(test *testing.T, s *linear.Seq) {
 	}
 }
 
-func newSeqLinear(s *linear.Seq) TestSequence {
+func newTestSeq(s *linear.Seq) TestSequence {
 	return TestSequence{name: s.Annotation.ID, seq: s.Seq.String()}
 }
 
@@ -63,7 +65,7 @@ func TestReadSeq(t *testing.T) {
 
 	f := joinSeq(seq)
 
-	s := ReadSeq(f)
+	s := seqio.ReadSeq(f)
 
 	seq.AssertEqual(t, s)
 
@@ -82,7 +84,7 @@ func TestScanSeq(t *testing.T) {
 
 	wg.Add(1)
 
-	go ScanSeq(f, out, &wg)
+	go seqio.ScanSeq(f, out, &wg)
 
 	s := <-out
 
@@ -102,7 +104,7 @@ func TestWriteSeq(t *testing.T) {
 	seq1 := linear.NewSeq("Foo", []alphabet.Letter("AAAA"), alphabet.DNA)
 	seq2 := linear.NewSeq("Bar", []alphabet.Letter("GGGG"), alphabet.DNA)
 
-	fExpected := joinSeq(newSeqLinear(seq1), newSeqLinear(seq2))
+	fExpected := joinSeq(newTestSeq(seq1), newTestSeq(seq2))
 
 	in := make(chan *linear.Seq)
 
@@ -110,7 +112,7 @@ func TestWriteSeq(t *testing.T) {
 
 	f := bytes.NewBufferString("")
 
-	go WriteSeq(f, in, &wg)
+	go seqio.WriteSeq(f, in, &wg)
 
 	in <- seq1
 	in <- seq2
