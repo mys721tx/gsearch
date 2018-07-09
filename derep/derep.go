@@ -54,41 +54,50 @@ type cluster struct {
 	//seqs *linear.Seq
 }
 
-func parseSeq(seq *linear.Seq) (string, int, string) {
+// parseAnno parses the annotation in sequence. The first monad is used as the
+// name of the sequence; otherwise defaults to "sequence". The last key-value
+// pair with key "size" is used as the size; otherwise defaults to 1.
+func parseAnno(seq *linear.Seq) (string, int) {
 
-	var name string
+	var monads []string
+
+	pairs := make(map[string]string)
+
+	for _, item := range strings.Split(seq.Annotation.ID, ";") {
+		// If more than 2 then skip
+		switch pair := strings.Split(item, "="); len(pair) {
+		case 1:
+			{
+				monads = append(monads, pair[0])
+			}
+		case 2:
+			{
+				pairs[pair[0]] = pair[1]
+			}
+		}
+	}
+
 	var size int
 	var err error
 
-	// hard coded for now
-	switch desc := strings.Split(seq.Annotation.ID, ";size="); len(desc) {
-	case 0:
-		{
-
+	if _, prs := pairs["size"]; prs {
+		size, err = strconv.Atoi(pairs["size"])
+		if err != nil {
 			size = 1
-			name = "sequence"
 		}
-	case 1:
-		{
-			size = 1
-			name = desc[0]
-		}
-	case 2:
-		{
-			size, err = strconv.Atoi(desc[1])
-			// If unable to get cluster size, default to 1
-			if err != nil {
-				size = 1
-			}
-			name = desc[0]
-		}
-	default:
-		log.Fatalf("Unrecognized annotation: %v", seq.Annotation.ID)
+	} else {
+		size = 1
 	}
 
-	s := seq.String()
+	var name string
 
-	return name, size, s
+	if len(monads) > 0 {
+		name = monads[0]
+	} else {
+		name = "sequence"
+	}
+
+	return name, size
 }
 
 // derep receives a sequence from a channel and builds a map.
@@ -100,13 +109,13 @@ func deRep(in <-chan *linear.Seq, out chan<- *linear.Seq) {
 	rep := make(map[string]*cluster)
 
 	for seq := range in {
-		name, size, s := parseSeq(seq)
+		name, size := parseAnno(seq)
 
-		if _, prs := rep[s]; !prs {
+		if _, prs := rep[seq.String()]; !prs {
 			//rep[s] = &cluster{name: name, size: size, seqs: seq}
-			rep[s] = &cluster{name: name, size: size}
+			rep[seq.String()] = &cluster{name: name, size: size}
 		} else {
-			rep[s].size += size
+			rep[seq.String()].size += size
 		}
 	}
 
