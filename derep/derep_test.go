@@ -20,6 +20,8 @@ package main
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/biogo/biogo/alphabet"
@@ -27,36 +29,127 @@ import (
 )
 
 type TestSequence struct {
-	name string
-	size int
-	seq  string
+	monads []string
+	pairs  map[string]string
+	seq    string
 }
 
 func (t *TestSequence) newSeqLinear() *linear.Seq {
+	items := t.monads
+	for k, v := range t.pairs {
+		items = append(items, fmt.Sprintf("%s=%s", k, v))
+	}
+
 	return linear.NewSeq(
-		fmt.Sprintf("%s;size=%d", t.name, t.size),
+		strings.Join(items, ";"),
 		[]alphabet.Letter(t.seq),
 		alphabet.DNA,
 	)
 }
-
 func TestParseAnno(t *testing.T) {
-	seq := TestSequence{name: "foo", size: 100, seq: "ATTC"}
+	seq := TestSequence{
+		monads: []string{"foo"},
+		pairs:  map[string]string{"size": "100"},
+		seq:    "ATTC",
+	}
 
 	name, size := parseAnno(seq.newSeqLinear())
 
-	if name != seq.name {
+	if name != seq.monads[0] {
 		t.Errorf(
 			"expecting name %s, parseAnno returns %s",
-			seq.name,
+			seq.monads[0],
 			name,
 		)
 	}
 
-	if size != seq.size {
+	if sizeExpected, _ := strconv.Atoi(seq.pairs["size"]); size != sizeExpected {
 		t.Errorf(
 			"expecting size %d, parseAnno returns %d",
-			seq.size,
+			sizeExpected,
+			size,
+		)
+	}
+}
+func TestParseAnnoMissingSize(t *testing.T) {
+	seq := TestSequence{
+		monads: []string{"foo"},
+		pairs:  map[string]string{},
+		seq:    "ATTC",
+	}
+
+	name, size := parseAnno(seq.newSeqLinear())
+
+	if name != seq.monads[0] {
+		t.Errorf(
+			"expecting name %s, parseAnno returns %s",
+			seq.monads[0],
+			name,
+		)
+	}
+
+	sizeExpected := 1
+
+	if size != sizeExpected {
+		t.Errorf(
+			"expecting size %d, parseAnno returns %d",
+			sizeExpected,
+			size,
+		)
+	}
+}
+
+func TestParseAnnoUnrecognizedSize(t *testing.T) {
+	seq := TestSequence{
+		monads: []string{"foo"},
+		pairs:  map[string]string{"size": "spam"},
+		seq:    "ATTC",
+	}
+
+	name, size := parseAnno(seq.newSeqLinear())
+
+	if name != seq.monads[0] {
+		t.Errorf(
+			"expecting name %s, parseAnno returns %s",
+			seq.monads[0],
+			name,
+		)
+	}
+
+	sizeExpected := 1
+
+	if size != sizeExpected {
+		t.Errorf(
+			"expecting size %d, parseAnno returns %d",
+			sizeExpected,
+			size,
+		)
+	}
+}
+
+func TestParseAnnoMissingName(t *testing.T) {
+	seq := TestSequence{
+		monads: []string{},
+		pairs:  map[string]string{"size": "100"},
+		seq:    "ATTC",
+	}
+
+	name, size := parseAnno(seq.newSeqLinear())
+
+	nameExpected := "sequence"
+
+	if name != nameExpected {
+		t.Errorf(
+			"expecting name %s, parseAnno returns %s",
+			nameExpected,
+			name,
+		)
+	}
+
+	if sizeExpected, _ := strconv.Atoi(seq.pairs["size"]); size != sizeExpected {
+		t.Errorf(
+			"expecting size %d, parseAnno returns %d",
+			sizeExpected,
 			size,
 		)
 	}
