@@ -20,6 +20,7 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -46,116 +47,127 @@ func (t *TestSequence) newSeqLinear() *linear.Seq {
 		alphabet.DNA,
 	)
 }
+
 func TestParseAnno(t *testing.T) {
+	exp := cluster{
+		name: "foo",
+		size: 100,
+	}
+
 	seq := TestSequence{
-		monads: []string{"foo"},
+		monads: []string{exp.name},
 		pairs:  map[string]string{"size": "100"},
 		seq:    "ATTC",
 	}
 
-	name, size := parseAnno(seq.newSeqLinear())
+	res := parseAnno(seq.newSeqLinear())
 
-	if name != seq.monads[0] {
+	if !reflect.DeepEqual(exp, *res) {
 		t.Errorf(
-			"expecting name %s, parseAnno returns %s",
-			seq.monads[0],
-			name,
-		)
-	}
-
-	if sizeExpected, _ := strconv.Atoi(seq.pairs["size"]); size != sizeExpected {
-		t.Errorf(
-			"expecting size %d, parseAnno returns %d",
-			sizeExpected,
-			size,
+			"expecting cluster %v, parseAnno returns %v",
+			exp,
+			res,
 		)
 	}
 }
 func TestParseAnnoMissingSize(t *testing.T) {
+	exp := cluster{
+		name: "foo",
+		size: 1,
+	}
+
 	seq := TestSequence{
-		monads: []string{"foo"},
+		monads: []string{exp.name},
 		pairs:  map[string]string{},
 		seq:    "ATTC",
 	}
 
-	name, size := parseAnno(seq.newSeqLinear())
+	res := parseAnno(seq.newSeqLinear())
 
-	if name != seq.monads[0] {
+	if !reflect.DeepEqual(exp, *res) {
 		t.Errorf(
-			"expecting name %s, parseAnno returns %s",
-			seq.monads[0],
-			name,
-		)
-	}
-
-	sizeExpected := 1
-
-	if size != sizeExpected {
-		t.Errorf(
-			"expecting size %d, parseAnno returns %d",
-			sizeExpected,
-			size,
+			"expecting cluster %v, parseAnno returns %v",
+			exp,
+			res,
 		)
 	}
 }
 
 func TestParseAnnoUnrecognizedSize(t *testing.T) {
+	exp := cluster{
+		name: "foo",
+		size: 1,
+	}
+
 	seq := TestSequence{
-		monads: []string{"foo"},
+		monads: []string{exp.name},
 		pairs:  map[string]string{"size": "spam"},
 		seq:    "ATTC",
 	}
 
-	name, size := parseAnno(seq.newSeqLinear())
+	res := parseAnno(seq.newSeqLinear())
 
-	if name != seq.monads[0] {
+	if !reflect.DeepEqual(exp, *res) {
 		t.Errorf(
-			"expecting name %s, parseAnno returns %s",
-			seq.monads[0],
-			name,
+			"expecting cluster %v, parseAnno returns %v",
+			exp,
+			res,
 		)
 	}
+}
 
-	sizeExpected := 1
+func TestParseAnnoNegativeSize(t *testing.T) {
+	exp := cluster{
+		name: "foo",
+		size: 1,
+	}
 
-	if size != sizeExpected {
+	seq := TestSequence{
+		monads: []string{exp.name},
+		pairs:  map[string]string{"size": "-200"},
+		seq:    "ATTC",
+	}
+
+	res := parseAnno(seq.newSeqLinear())
+
+	if !reflect.DeepEqual(exp, *res) {
 		t.Errorf(
-			"expecting size %d, parseAnno returns %d",
-			sizeExpected,
-			size,
+			"expecting cluster %v, parseAnno returns %v",
+			exp,
+			res,
 		)
 	}
 }
 
 func TestParseAnnoMissingName(t *testing.T) {
+	exp := cluster{
+		name: "sequence",
+		size: 100,
+	}
+
 	seq := TestSequence{
 		monads: []string{},
 		pairs:  map[string]string{"size": "100"},
 		seq:    "ATTC",
 	}
 
-	name, size := parseAnno(seq.newSeqLinear())
+	res := parseAnno(seq.newSeqLinear())
 
-	nameExpected := "sequence"
-
-	if name != nameExpected {
+	if !reflect.DeepEqual(exp, *res) {
 		t.Errorf(
-			"expecting name %s, parseAnno returns %s",
-			nameExpected,
-			name,
-		)
-	}
-
-	if sizeExpected, _ := strconv.Atoi(seq.pairs["size"]); size != sizeExpected {
-		t.Errorf(
-			"expecting size %d, parseAnno returns %d",
-			sizeExpected,
-			size,
+			"expecting cluster %v, parseAnno returns %v",
+			exp,
+			res,
 		)
 	}
 }
 
 func TestDeRep(t *testing.T) {
+	exp := cluster{
+		name: "foo",
+		size: 114,
+	}
+
 	seqs := []TestSequence{
 		{
 			monads: []string{"foo"},
@@ -163,7 +175,7 @@ func TestDeRep(t *testing.T) {
 			seq:    "ATTC",
 		},
 		{
-			monads: []string{},
+			monads: []string{"bar"},
 			pairs:  map[string]string{"size": "10"},
 			seq:    "ATTC",
 		},
@@ -189,21 +201,13 @@ func TestDeRep(t *testing.T) {
 
 	close(cin)
 
-	name, size := parseAnno(<-cout)
+	res := parseAnno(<-cout)
 
-	if nameExpected := seqs[0].monads[0]; name != nameExpected {
+	if !reflect.DeepEqual(exp, *res) {
 		t.Errorf(
-			"expecting name %s, parseAnno returns %s",
-			nameExpected,
-			name,
-		)
-	}
-
-	if size != sizeExpected {
-		t.Errorf(
-			"expecting size %d, parseAnno returns %d",
-			sizeExpected,
-			size,
+			"expecting cluster %v, parseAnno returns %v",
+			exp,
+			res,
 		)
 	}
 

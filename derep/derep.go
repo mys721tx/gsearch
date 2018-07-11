@@ -57,7 +57,7 @@ type cluster struct {
 // parseAnno parses the annotation in sequence. The first monad is used as the
 // name of the sequence; otherwise defaults to "sequence". The last key-value
 // pair with key "size" is used as the size; otherwise defaults to 1.
-func parseAnno(seq *linear.Seq) (string, int) {
+func parseAnno(seq *linear.Seq) *cluster {
 
 	var monads []string
 
@@ -85,6 +85,9 @@ func parseAnno(seq *linear.Seq) (string, int) {
 		if err != nil {
 			size = 1
 		}
+		if size <= 0 {
+			size = 1
+		}
 	} else {
 		size = 1
 	}
@@ -97,7 +100,9 @@ func parseAnno(seq *linear.Seq) (string, int) {
 		name = "sequence"
 	}
 
-	return name, size
+	res := cluster{name: name, size: size}
+
+	return &res
 }
 
 // derep receives a sequence from a channel and builds a map.
@@ -109,13 +114,13 @@ func deRep(in <-chan *linear.Seq, out chan<- *linear.Seq) {
 	rep := make(map[string]*cluster)
 
 	for seq := range in {
-		name, size := parseAnno(seq)
+		c := parseAnno(seq)
 
 		if _, prs := rep[seq.String()]; !prs {
 			//rep[s] = &cluster{name: name, size: size, seqs: seq}
-			rep[seq.String()] = &cluster{name: name, size: size}
+			rep[seq.String()] = c
 		} else {
-			rep[seq.String()].size += size
+			rep[seq.String()].size += c.size
 		}
 	}
 
