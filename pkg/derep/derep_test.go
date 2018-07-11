@@ -16,28 +16,32 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-package main
+package derep_test
 
 import (
 	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/biogo/biogo/alphabet"
 	"github.com/biogo/biogo/seq/linear"
+
+	"github.com/mys721tx/gsearch/pkg/derep"
 )
 
-type TestSequence struct {
-	monads []string
-	pairs  map[string]string
-	seq    string
+// TestSeq use mnd for monadic items, par for key-value pairs, and seq for
+// sequence.
+type TestSeq struct {
+	mnd []string
+	par map[string]string
+	seq string
 }
 
-func (t *TestSequence) newSeqLinear() *linear.Seq {
-	items := t.monads
-	for k, v := range t.pairs {
+func (t *TestSeq) newSeqLinear() *linear.Seq {
+	items := t.mnd
+	for k, v := range t.par {
 		items = append(items, fmt.Sprintf("%s=%s", k, v))
 	}
 
@@ -49,18 +53,18 @@ func (t *TestSequence) newSeqLinear() *linear.Seq {
 }
 
 func TestParseAnno(t *testing.T) {
-	exp := cluster{
-		name: "foo",
-		size: 100,
+	exp := derep.Cluster{
+		Name: "foo",
+		Size: 100,
 	}
 
-	seq := TestSequence{
-		monads: []string{exp.name},
-		pairs:  map[string]string{"size": "100"},
-		seq:    "ATTC",
+	seq := TestSeq{
+		mnd: []string{exp.Name},
+		par: map[string]string{"size": "100"},
+		seq: "ATTC",
 	}
 
-	res := parseAnno(seq.newSeqLinear())
+	res := derep.ParseAnno(seq.newSeqLinear())
 
 	if !reflect.DeepEqual(exp, *res) {
 		t.Errorf(
@@ -71,18 +75,18 @@ func TestParseAnno(t *testing.T) {
 	}
 }
 func TestParseAnnoMissingSize(t *testing.T) {
-	exp := cluster{
-		name: "foo",
-		size: 1,
+	exp := derep.Cluster{
+		Name: "foo",
+		Size: 1,
 	}
 
-	seq := TestSequence{
-		monads: []string{exp.name},
-		pairs:  map[string]string{},
-		seq:    "ATTC",
+	seq := TestSeq{
+		mnd: []string{exp.Name},
+		par: map[string]string{},
+		seq: "ATTC",
 	}
 
-	res := parseAnno(seq.newSeqLinear())
+	res := derep.ParseAnno(seq.newSeqLinear())
 
 	if !reflect.DeepEqual(exp, *res) {
 		t.Errorf(
@@ -94,18 +98,18 @@ func TestParseAnnoMissingSize(t *testing.T) {
 }
 
 func TestParseAnnoUnrecognizedSize(t *testing.T) {
-	exp := cluster{
-		name: "foo",
-		size: 1,
+	exp := derep.Cluster{
+		Name: "foo",
+		Size: 1,
 	}
 
-	seq := TestSequence{
-		monads: []string{exp.name},
-		pairs:  map[string]string{"size": "spam"},
-		seq:    "ATTC",
+	seq := TestSeq{
+		mnd: []string{exp.Name},
+		par: map[string]string{"size": "spam"},
+		seq: "ATTC",
 	}
 
-	res := parseAnno(seq.newSeqLinear())
+	res := derep.ParseAnno(seq.newSeqLinear())
 
 	if !reflect.DeepEqual(exp, *res) {
 		t.Errorf(
@@ -117,18 +121,18 @@ func TestParseAnnoUnrecognizedSize(t *testing.T) {
 }
 
 func TestParseAnnoNegativeSize(t *testing.T) {
-	exp := cluster{
-		name: "foo",
-		size: 1,
+	exp := derep.Cluster{
+		Name: "foo",
+		Size: 1,
 	}
 
-	seq := TestSequence{
-		monads: []string{exp.name},
-		pairs:  map[string]string{"size": "-200"},
-		seq:    "ATTC",
+	seq := TestSeq{
+		mnd: []string{exp.Name},
+		par: map[string]string{"size": "-200"},
+		seq: "ATTC",
 	}
 
-	res := parseAnno(seq.newSeqLinear())
+	res := derep.ParseAnno(seq.newSeqLinear())
 
 	if !reflect.DeepEqual(exp, *res) {
 		t.Errorf(
@@ -140,18 +144,18 @@ func TestParseAnnoNegativeSize(t *testing.T) {
 }
 
 func TestParseAnnoMissingName(t *testing.T) {
-	exp := cluster{
-		name: "sequence",
-		size: 100,
+	exp := derep.Cluster{
+		Name: "sequence",
+		Size: 100,
 	}
 
-	seq := TestSequence{
-		monads: []string{},
-		pairs:  map[string]string{"size": "100"},
-		seq:    "ATTC",
+	seq := TestSeq{
+		mnd: []string{},
+		par: map[string]string{"size": "100"},
+		seq: "ATTC",
 	}
 
-	res := parseAnno(seq.newSeqLinear())
+	res := derep.ParseAnno(seq.newSeqLinear())
 
 	if !reflect.DeepEqual(exp, *res) {
 		t.Errorf(
@@ -163,45 +167,45 @@ func TestParseAnnoMissingName(t *testing.T) {
 }
 
 func TestDeRep(t *testing.T) {
-	exp := cluster{
-		name: "foo",
-		size: 114,
+
+	var wg sync.WaitGroup
+
+	exp := derep.Cluster{
+		Name: "foo",
+		Size: 114,
 	}
 
-	seqs := []TestSequence{
+	seqs := []TestSeq{
 		{
-			monads: []string{"foo"},
-			pairs:  map[string]string{"size": "100"},
-			seq:    "ATTC",
+			mnd: []string{"foo"},
+			par: map[string]string{"size": "100"},
+			seq: "ATTC",
 		},
 		{
-			monads: []string{"bar"},
-			pairs:  map[string]string{"size": "10"},
-			seq:    "ATTC",
+			mnd: []string{"bar"},
+			par: map[string]string{"size": "10"},
+			seq: "ATTC",
 		},
 		{
-			monads: []string{},
-			pairs:  map[string]string{"size": "4"},
-			seq:    "ATTC",
+			mnd: []string{},
+			par: map[string]string{"size": "4"},
+			seq: "ATTC",
 		},
 	}
 
 	cin := make(chan *linear.Seq)
 	cout := make(chan *linear.Seq)
-	wg.Add(1)
-	go deRep(cin, cout)
 
-	sizeExpected := 0
+	wg.Add(1)
+	go derep.DeRep(cin, cout, &wg)
 
 	for _, seq := range seqs {
-		size, _ := strconv.Atoi(seq.pairs["size"])
-		sizeExpected += size
 		cin <- seq.newSeqLinear()
 	}
 
 	close(cin)
 
-	res := parseAnno(<-cout)
+	res := derep.ParseAnno(<-cout)
 
 	if !reflect.DeepEqual(exp, *res) {
 		t.Errorf(

@@ -17,47 +17,29 @@
  *
  */
 
-package main
+package derep
 
 import (
-	"bufio"
-	"flag"
 	"fmt"
-	"log"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/biogo/biogo/alphabet"
 	"github.com/biogo/biogo/seq/linear"
-	"github.com/mys721tx/gsearch/seqio"
 )
 
-var (
-	pin = flag.String(
-		"in",
-		"",
-		"path to the sequence fasta file, default to stdin.",
-	)
-	pout = flag.String(
-		"out",
-		"",
-		"path to the output fasta file, default to stdout.",
-	)
-	wg sync.WaitGroup
-)
-
-type cluster struct {
-	name string
-	size int
+// Cluster is a struct that stores the name and size of an FASTA annotation.
+type Cluster struct {
+	Name string
+	Size int
 	//seqs *linear.Seq
 }
 
-// parseAnno parses the annotation in sequence. The first monad is used as the
+// ParseAnno parses the annotation in sequence. The first monad is used as the
 // name of the sequence; otherwise defaults to "sequence". The last key-value
 // pair with key "size" is used as the size; otherwise defaults to 1.
-func parseAnno(seq *linear.Seq) *cluster {
+func ParseAnno(seq *linear.Seq) *Cluster {
 
 	var monads []string
 
@@ -100,89 +82,35 @@ func parseAnno(seq *linear.Seq) *cluster {
 		name = "sequence"
 	}
 
-	res := cluster{name: name, size: size}
+	res := Cluster{Name: name, Size: size}
 
 	return &res
 }
 
-// derep receives a sequence from a channel and builds a map.
+// DeRep receives a sequence from a channel and builds a map.
 // If a sequence is in a map, if not, output it.
-func deRep(in <-chan *linear.Seq, out chan<- *linear.Seq) {
+func DeRep(in <-chan *linear.Seq, out chan<- *linear.Seq, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer close(out)
 
-	rep := make(map[string]*cluster)
+	rep := make(map[string]*Cluster)
 
 	for seq := range in {
-		c := parseAnno(seq)
+		c := ParseAnno(seq)
 
 		if _, prs := rep[seq.String()]; !prs {
 			//rep[s] = &cluster{name: name, size: size, seqs: seq}
 			rep[seq.String()] = c
 		} else {
-			rep[seq.String()].size += c.size
+			rep[seq.String()].Size += c.Size
 		}
 	}
 
 	for s, v := range rep {
 		out <- linear.NewSeq(
-			fmt.Sprintf("%v;size=%d", v.name, v.size),
+			fmt.Sprintf("%v;size=%d", v.Name, v.Size),
 			[]alphabet.Letter(s),
 			alphabet.DNA,
 		)
 	}
-
-}
-
-func main() {
-	flag.Parse()
-
-	var fin, fout *os.File
-	var err error
-
-	if *pin == "" {
-		fin = os.Stdin
-	} else {
-		fin, err = os.Open(*pin)
-	}
-
-	if err != nil {
-		log.Fatalf("failed to open %q: %v", *pin, err)
-	}
-
-	if *pout == "" {
-		fout = os.Stdin
-	} else {
-		fout, err = os.Create(*pout)
-	}
-
-	if err != nil {
-		log.Fatalf("failed to open %q: %v", *pout, err)
-	}
-
-	defer func() {
-		err = fout.Close()
-
-		if err != nil {
-			log.Fatalf("failed to close %q: %v", *pout, err)
-		}
-	}()
-
-	w := bufio.NewWriter(fout)
-
-	cin := make(chan *linear.Seq)
-	cout := make(chan *linear.Seq)
-
-	wg.Add(3)
-	go seqio.ScanSeq(fin, cin, &wg)
-	go deRep(cin, cout)
-	go seqio.WriteSeq(w, cout, &wg)
-	wg.Wait()
-
-	err = w.Flush()
-
-	if err != nil {
-		log.Fatalf("failed to flush %q: %v", *pout, err)
-	}
-
 }

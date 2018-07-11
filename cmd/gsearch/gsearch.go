@@ -28,7 +28,8 @@ import (
 
 	"github.com/biogo/biogo/align"
 	"github.com/biogo/biogo/seq/linear"
-	"github.com/mys721tx/gsearch/seqio"
+
+	"github.com/mys721tx/gsearch/pkg/seqio"
 )
 
 var (

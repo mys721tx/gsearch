@@ -27,15 +27,16 @@ import (
 	"github.com/biogo/biogo/alphabet"
 	"github.com/biogo/biogo/seq/linear"
 
-	"github.com/mys721tx/gsearch/seqio"
+	"github.com/mys721tx/gsearch/pkg/seqio"
 )
 
-type TestSequence struct {
+// TestSeq use name for sequence name, and seq for sequence.
+type TestSeq struct {
 	name string
 	seq  string
 }
 
-func joinSeq(seqs ...TestSequence) *bytes.Buffer {
+func joinSeq(seqs ...TestSeq) *bytes.Buffer {
 	s := ""
 
 	for _, seq := range seqs {
@@ -45,7 +46,7 @@ func joinSeq(seqs ...TestSequence) *bytes.Buffer {
 	return bytes.NewBufferString(s)
 }
 
-func (t *TestSequence) AssertEqual(test *testing.T, s *linear.Seq) {
+func (t *TestSeq) AssertEqual(test *testing.T, s *linear.Seq) {
 	if s.Annotation.ID != t.name {
 		test.Errorf(
 			"expecting name %s, ReadSeq returns %s", t.name, s.Annotation.ID)
@@ -56,12 +57,12 @@ func (t *TestSequence) AssertEqual(test *testing.T, s *linear.Seq) {
 	}
 }
 
-func newTestSeq(s *linear.Seq) TestSequence {
-	return TestSequence{name: s.Annotation.ID, seq: s.Seq.String()}
+func newTestSeq(s *linear.Seq) TestSeq {
+	return TestSeq{name: s.Annotation.ID, seq: s.Seq.String()}
 }
 
 func TestReadSeq(t *testing.T) {
-	seq := TestSequence{name: "Foo", seq: "AAAA"}
+	seq := TestSeq{name: "Foo", seq: "AAAA"}
 
 	f := joinSeq(seq)
 
@@ -75,8 +76,8 @@ func TestScanSeq(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	seq1 := TestSequence{name: "Foo", seq: "AAAA"}
-	seq2 := TestSequence{name: "Bar", seq: "GGGG"}
+	seq1 := TestSeq{name: "Foo", seq: "AAAA"}
+	seq2 := TestSeq{name: "Bar", seq: "GGGG"}
 
 	f := joinSeq(seq1, seq2)
 

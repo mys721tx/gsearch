@@ -5,7 +5,7 @@
 ## Description
 
 **GSEARCH** is a concurrent tool suite for metagenomics. Currently only the
-dedpuliator is implemented.
+derepuliator is implemented.
 
 ## Installation
 
@@ -15,7 +15,7 @@ dedpuliator is implemented.
         GSEARCH has been tested on Go 1.10.2.
     * See [Installation](https://golang.github.io/dep/docs/installation.html) to
         install `dep`.
-3. Run `go build derep.go` to build the binary under `derep` directory.
+3. Run `go build cmd/derep/derep.go` to build the binary for `derep`.
 4. Run `./derep -in infile -out outfile` to remove duplicated FASTA sequence
     from `infile` and output to `outfile`.
     * The description for a FASTA sequence should be in `NAME;size=NUM` format
