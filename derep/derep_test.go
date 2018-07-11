@@ -154,3 +154,58 @@ func TestParseAnnoMissingName(t *testing.T) {
 		)
 	}
 }
+
+func TestDeRep(t *testing.T) {
+	seqs := []TestSequence{
+		{
+			monads: []string{"foo"},
+			pairs:  map[string]string{"size": "100"},
+			seq:    "ATTC",
+		},
+		{
+			monads: []string{},
+			pairs:  map[string]string{"size": "10"},
+			seq:    "ATTC",
+		},
+		{
+			monads: []string{},
+			pairs:  map[string]string{"size": "4"},
+			seq:    "ATTC",
+		},
+	}
+
+	cin := make(chan *linear.Seq)
+	cout := make(chan *linear.Seq)
+	wg.Add(1)
+	go deRep(cin, cout)
+
+	sizeExpected := 0
+
+	for _, seq := range seqs {
+		size, _ := strconv.Atoi(seq.pairs["size"])
+		sizeExpected += size
+		cin <- seq.newSeqLinear()
+	}
+
+	close(cin)
+
+	name, size := parseAnno(<-cout)
+
+	if nameExpected := seqs[0].monads[0]; name != nameExpected {
+		t.Errorf(
+			"expecting name %s, parseAnno returns %s",
+			nameExpected,
+			name,
+		)
+	}
+
+	if size != sizeExpected {
+		t.Errorf(
+			"expecting size %d, parseAnno returns %d",
+			sizeExpected,
+			size,
+		)
+	}
+
+	wg.Wait()
+}
