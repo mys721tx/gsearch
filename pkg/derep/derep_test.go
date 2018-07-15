@@ -19,178 +19,128 @@
 package derep_test
 
 import (
-	"fmt"
-	"reflect"
-	"strings"
 	"sync"
 	"testing"
 
 	"github.com/biogo/biogo/alphabet"
 	"github.com/biogo/biogo/seq/linear"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/mys721tx/gsearch/pkg/derep"
 )
 
-// TestSeq use mnd for monadic items, par for key-value pairs, and seq for
-// sequence.
-type TestSeq struct {
-	mnd []string
-	par map[string]string
-	seq string
-}
-
-func (t *TestSeq) newSeqLinear() *linear.Seq {
-	items := t.mnd
-	for k, v := range t.par {
-		items = append(items, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	return linear.NewSeq(
-		strings.Join(items, ";"),
-		[]alphabet.Letter(t.seq),
+func TestParseAnno(t *testing.T) {
+	seq := linear.NewSeq(
+		"foo;size=100",
+		[]alphabet.Letter("ATTC"),
 		alphabet.DNA,
 	)
-}
 
-func TestParseAnno(t *testing.T) {
-	exp := derep.Cluster{
-		Name: "foo",
-		Size: 100,
-	}
+	res := derep.ParseAnno(seq)
 
-	seq := TestSeq{
-		mnd: []string{exp.Name},
-		par: map[string]string{"size": "100"},
-		seq: "ATTC",
-	}
-
-	res := derep.ParseAnno(seq.newSeqLinear())
-
-	if !reflect.DeepEqual(exp, *res) {
-		t.Errorf(
-			"expecting cluster %v, parseAnno returns %v",
-			exp,
-			res,
-		)
-	}
+	assert.Equal(t, res.Name, "foo", "Name should be the first monad.")
+	assert.Equal(t, res.Size, 100, "Size should be the value of size.")
 }
 func TestParseAnnoMissingSize(t *testing.T) {
-	exp := derep.Cluster{
-		Name: "foo",
-		Size: 1,
-	}
+	seq := linear.NewSeq(
+		"foo",
+		[]alphabet.Letter("ATTC"),
+		alphabet.DNA,
+	)
 
-	seq := TestSeq{
-		mnd: []string{exp.Name},
-		par: map[string]string{},
-		seq: "ATTC",
-	}
+	res := derep.ParseAnno(seq)
 
-	res := derep.ParseAnno(seq.newSeqLinear())
-
-	if !reflect.DeepEqual(exp, *res) {
-		t.Errorf(
-			"expecting cluster %v, parseAnno returns %v",
-			exp,
-			res,
-		)
-	}
+	assert.Equal(t, res.Name, "foo", "Name should be the first monad.")
+	assert.Equal(t, res.Size, 1, "Size should be 1 when size is missing.")
 }
 
 func TestParseAnnoUnrecognizedSize(t *testing.T) {
-	exp := derep.Cluster{
-		Name: "foo",
-		Size: 1,
-	}
+	seq := linear.NewSeq(
+		"foo;size=spam",
+		[]alphabet.Letter("ATTC"),
+		alphabet.DNA,
+	)
 
-	seq := TestSeq{
-		mnd: []string{exp.Name},
-		par: map[string]string{"size": "spam"},
-		seq: "ATTC",
-	}
+	res := derep.ParseAnno(seq)
 
-	res := derep.ParseAnno(seq.newSeqLinear())
-
-	if !reflect.DeepEqual(exp, *res) {
-		t.Errorf(
-			"expecting cluster %v, parseAnno returns %v",
-			exp,
-			res,
-		)
-	}
+	assert.Equal(t, res.Name, "foo", "Name should be the first monad.")
+	assert.Equal(t, res.Size, 1, "Size should be 1 when size is not a int.")
 }
 
 func TestParseAnnoNegativeSize(t *testing.T) {
-	exp := derep.Cluster{
-		Name: "foo",
-		Size: 1,
-	}
+	seq := linear.NewSeq(
+		"foo;size=-200",
+		[]alphabet.Letter("ATTC"),
+		alphabet.DNA,
+	)
 
-	seq := TestSeq{
-		mnd: []string{exp.Name},
-		par: map[string]string{"size": "-200"},
-		seq: "ATTC",
-	}
+	res := derep.ParseAnno(seq)
 
-	res := derep.ParseAnno(seq.newSeqLinear())
+	assert.Equal(t, res.Name, "foo", "Name should be the first monad.")
+	assert.Equal(t, res.Size, 1, "Size should be 1 when size is negative.")
+}
 
-	if !reflect.DeepEqual(exp, *res) {
-		t.Errorf(
-			"expecting cluster %v, parseAnno returns %v",
-			exp,
-			res,
-		)
-	}
+func TestParseAnnoMultipleSizes(t *testing.T) {
+	seq := linear.NewSeq(
+		"foo;size=100;size=200",
+		[]alphabet.Letter("ATTC"),
+		alphabet.DNA,
+	)
+
+	res := derep.ParseAnno(seq)
+
+	assert.Equal(t, res.Name, "foo", "Name should be the first monad.")
+	assert.Equal(t, res.Size, 200, "Size should be the last value of size.")
 }
 
 func TestParseAnnoMissingName(t *testing.T) {
-	exp := derep.Cluster{
-		Name: "sequence",
-		Size: 100,
-	}
+	seq := linear.NewSeq(
+		"size=100",
+		[]alphabet.Letter("ATTC"),
+		alphabet.DNA,
+	)
 
-	seq := TestSeq{
-		mnd: []string{},
-		par: map[string]string{"size": "100"},
-		seq: "ATTC",
-	}
+	res := derep.ParseAnno(seq)
 
-	res := derep.ParseAnno(seq.newSeqLinear())
+	assert.Equal(t, res.Name, "sequence",
+		"Name should default to sequence.",
+	)
+	assert.Equal(t, res.Size, 100, "Size should be the value of size.")
+}
 
-	if !reflect.DeepEqual(exp, *res) {
-		t.Errorf(
-			"expecting cluster %v, parseAnno returns %v",
-			exp,
-			res,
-		)
-	}
+func TestParseAnnoMultipleMonads(t *testing.T) {
+	seq := linear.NewSeq(
+		"size=100;foo;spam=egg;bar",
+		[]alphabet.Letter("ATTC"),
+		alphabet.DNA,
+	)
+
+	res := derep.ParseAnno(seq)
+
+	assert.Equal(t, res.Name, "foo", "Name should be the first monad.")
+	assert.Equal(t, res.Size, 100, "Size should be the value of size.")
 }
 
 func TestDeRep(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	exp := derep.Cluster{
-		Name: "foo",
-		Size: 114,
-	}
-
-	seqs := []TestSeq{
-		{
-			mnd: []string{"foo"},
-			par: map[string]string{"size": "100"},
-			seq: "ATTC",
-		},
-		{
-			mnd: []string{"bar"},
-			par: map[string]string{"size": "10"},
-			seq: "ATTC",
-		},
-		{
-			mnd: []string{},
-			par: map[string]string{"size": "4"},
-			seq: "ATTC",
-		},
+	seqs := []*linear.Seq{
+		linear.NewSeq(
+			"foo;size=100",
+			[]alphabet.Letter("ATTC"),
+			alphabet.DNA,
+		),
+		linear.NewSeq(
+			"bar;size=10",
+			[]alphabet.Letter("ATTC"),
+			alphabet.DNA,
+		),
+		linear.NewSeq(
+			"size=4;spam",
+			[]alphabet.Letter("ATTC"),
+			alphabet.DNA,
+		),
 	}
 
 	cin := make(chan *linear.Seq)
@@ -200,20 +150,17 @@ func TestDeRep(t *testing.T) {
 	go derep.DeRep(cin, cout, &wg)
 
 	for _, seq := range seqs {
-		cin <- seq.newSeqLinear()
+		cin <- seq
 	}
 
 	close(cin)
 
 	res := derep.ParseAnno(<-cout)
 
-	if !reflect.DeepEqual(exp, *res) {
-		t.Errorf(
-			"expecting cluster %v, parseAnno returns %v",
-			exp,
-			res,
-		)
-	}
+	assert.Equal(t, res.Name, "foo",
+		"Name should be the first monad of the first sequence.",
+	)
+	assert.Equal(t, res.Size, 114, "Size should be the sum of all sizes.")
 
 	wg.Wait()
 }
