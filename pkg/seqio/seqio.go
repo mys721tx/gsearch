@@ -30,24 +30,25 @@ import (
 	"github.com/golang/glog"
 )
 
+const (
+	// WidthCol is the length of the column used by WriteSeq
+	WidthCol = 80
+)
+
 // ReadSeq reads a sequence from a fasta file.
-func ReadSeq(f io.Reader) *linear.Seq {
+func ReadSeq(f io.Reader) (*linear.Seq, error) {
 	r := fasta.NewReader(f, linear.NewSeq("", nil, alphabet.DNAgapped))
 
 	s, err := r.Read()
 
 	if err != nil {
-		glog.Fatalf("failed to read sequence: %v", err)
+		return nil, err
 	}
 
 	// Type assertion to linear.Seq
 	seq := s.(*linear.Seq)
 
-	if v, p := seq.Validate(); !v {
-		glog.Fatalf("invalidate symbol: position %v", p)
-	}
-
-	return seq
+	return seq, nil
 }
 
 // ScanSeq scans sequences from a fasta file to a channel.
@@ -75,7 +76,7 @@ func ScanSeq(f io.Reader, out chan<- *linear.Seq, wg *sync.WaitGroup) {
 func WriteSeq(f io.Writer, in <-chan *linear.Seq, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	w := fasta.NewWriter(f, 80)
+	w := fasta.NewWriter(f, WidthCol)
 
 	for seq := range in {
 		if _, err := w.Write(seq); err != nil {
