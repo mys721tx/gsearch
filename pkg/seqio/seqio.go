@@ -28,7 +28,6 @@ import (
 	"github.com/biogo/biogo/io/seqio"
 	"github.com/biogo/biogo/io/seqio/fasta"
 	"github.com/biogo/biogo/seq/linear"
-	"github.com/golang/glog"
 )
 
 const (
@@ -80,7 +79,7 @@ func WriteSeq(f io.Writer, in <-chan *linear.Seq, wg *sync.WaitGroup) {
 
 	for seq := range in {
 		if _, err := w.Write(seq); err != nil {
-			glog.Warningf("failed to write: %v", err)
+			log.Panicf("Error occured during write: %s", err)
 		}
 	}
 }

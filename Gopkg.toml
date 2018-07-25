@@ -35,7 +35,3 @@
 [[constraint]]
   name = "github.com/stretchr/testify"
   version = "1.2.2"
-
-[[constraint]]
-  name = "github.com/golang/glog"
-  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"

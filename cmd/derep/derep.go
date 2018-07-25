@@ -95,7 +95,7 @@ func main() {
 
 	wg.Add(3)
 	go seqio.ScanSeq(fin, cin, &wg)
-	go derep.DeRep(cin, cout, &wg) // TODO: handling panic
-	go seqio.WriteSeq(w, cout, &wg)
+	go derep.DeRep(cin, cout, &wg)  // TODO: handling panic
+	go seqio.WriteSeq(w, cout, &wg) // TODO: handling panic
 	wg.Wait()
 }
