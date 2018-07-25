@@ -21,6 +21,7 @@ package seqio
 
 import (
 	"io"
+	"log"
 	"sync"
 
 	"github.com/biogo/biogo/alphabet"
@@ -62,13 +63,12 @@ func ScanSeq(f io.Reader, out chan<- *linear.Seq, wg *sync.WaitGroup) {
 
 	for sc.Next() {
 		s := sc.Seq()
+		// Type assertion to linear.Seq
+		out <- s.(*linear.Seq)
+	}
 
-		if err := sc.Error(); err != nil {
-			glog.Warningf("failed during read: %v", err)
-		} else {
-			// Type assertion to linear.Seq
-			out <- s.(*linear.Seq)
-		}
+	if err := sc.Error(); err != nil {
+		log.Panicf("Error occured during scan: %s", err)
 	}
 }
 

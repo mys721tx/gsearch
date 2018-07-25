@@ -59,7 +59,7 @@ func main() {
 	}
 
 	if err != nil {
-		log.Fatalf("failed to open %q: %v", *pin, err)
+		log.Panicf("failed to open %q: %v", *pin, err)
 	}
 
 	if *pout == "" {
@@ -69,14 +69,14 @@ func main() {
 	}
 
 	if err != nil {
-		log.Fatalf("failed to open %q: %v", *pout, err)
+		log.Panicf("failed to open %q: %v", *pout, err)
 	}
 
 	defer func() {
 		err = fout.Close()
 
 		if err != nil {
-			log.Fatalf("failed to close %q: %v", *pout, err)
+			log.Panicf("failed to close %q: %v", *pout, err)
 		}
 	}()
 
@@ -86,7 +86,7 @@ func main() {
 		err = w.Flush()
 
 		if err != nil {
-			log.Fatalf("failed to flush %q: %v", *pout, err)
+			log.Panicf("failed to flush %q: %v", *pout, err)
 		}
 	}()
 
@@ -95,7 +95,7 @@ func main() {
 
 	wg.Add(3)
 	go seqio.ScanSeq(fin, cin, &wg)
-	go derep.DeRep(cin, cout, &wg)
+	go derep.DeRep(cin, cout, &wg) // TODO: handling panic
 	go seqio.WriteSeq(w, cout, &wg)
 	wg.Wait()
 }

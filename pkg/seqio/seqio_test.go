@@ -178,16 +178,16 @@ func TestScanSeq(t *testing.T) {
 		fExp += writeString(s)
 	}
 
-	out := make(chan *linear.Seq)
+	c := make(chan *linear.Seq)
 
 	f := bytes.NewBufferString(fExp)
 
 	wg.Add(1)
 
-	go seqio.ScanSeq(f, out, &wg)
+	go seqio.ScanSeq(f, c, &wg)
 
 	for _, seq := range seqs {
-		s := <-out
+		s := <-c
 		assert.Equal(t, s.Annotation.ID, seq.Annotation.ID,
 			"Annotation.ID should be the same as input",
 		)
@@ -214,6 +214,75 @@ func TestScanSeq(t *testing.T) {
 	wg.Wait()
 }
 
+func TestScanSeqReaderError(t *testing.T) {
+
+	var wg sync.WaitGroup
+
+	c := make(chan *linear.Seq)
+	f := new(MockReader)
+
+	f.On("Read", mock.Anything).Return(0, os.ErrPermission)
+
+	wg.Add(1)
+
+	go assert.Panics(t, func() { seqio.ScanSeq(f, c, &wg) })
+
+	s := <-c
+
+	assert.Nil(t, s,
+		"nil should be returned when an error occurs.",
+	)
+
+	f.On("Read", mock.Anything).Return(0, os.ErrNotExist)
+
+	wg.Add(1)
+
+	go assert.Panics(t, func() { seqio.ScanSeq(f, c, &wg) })
+
+	s = <-c
+
+	assert.Nil(t, s,
+		"nil should be returned when an error occurs.",
+	)
+
+	f.On("Read", mock.Anything).Return(0, io.EOF)
+
+	wg.Add(1)
+
+	go assert.Panics(t, func() { seqio.ScanSeq(f, c, &wg) })
+
+	s = <-c
+
+	assert.Nil(t, s,
+		"nil should be returned when an error occurs.",
+	)
+
+	wg.Wait()
+}
+
+func TestScanSeqMalform(t *testing.T) {
+
+	var wg sync.WaitGroup
+
+	f := bytes.NewBufferString("AAAA\n>Foo\nAAAA")
+
+	c := make(chan *linear.Seq)
+
+	wg.Add(1)
+
+	go assert.Panics(t, func() { seqio.ScanSeq(f, c, &wg) },
+		"ScanSeq should panic when encountered an error",
+	)
+
+	s := <-c
+
+	assert.Nil(t, s,
+		"nil should be returned when an error occurs.",
+	)
+
+	wg.Wait()
+}
+
 func TestWriteSeq(t *testing.T) {
 
 	var wg sync.WaitGroup
@@ -223,22 +292,22 @@ func TestWriteSeq(t *testing.T) {
 		linear.NewSeq("Bar", []alphabet.Letter("GGGG"), alphabet.DNA),
 	}
 
-	in := make(chan *linear.Seq)
+	c := make(chan *linear.Seq)
 
 	wg.Add(1)
 
 	f := bytes.NewBufferString("")
 
-	go seqio.WriteSeq(f, in, &wg)
+	go seqio.WriteSeq(f, c, &wg)
 
 	var fExp string
 
 	for _, s := range seqs {
-		in <- s
+		c <- s
 		fExp += writeString(s)
 	}
 
-	close(in)
+	close(c)
 
 	wg.Wait()
 
@@ -246,3 +315,4 @@ func TestWriteSeq(t *testing.T) {
 		"Output should be the same as input sequence.",
 	)
 }
+
