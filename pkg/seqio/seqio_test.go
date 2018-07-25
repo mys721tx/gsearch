@@ -89,13 +89,38 @@ func (_m *MockWriter) Write(p []byte) (int, error) {
 
 // writeString writes the sequence to string via a writer
 func writeString(s *linear.Seq) string {
-	f := bytes.NewBufferString("")
+	f := new(bytes.Buffer)
 
 	w := fasta.NewWriter(f, seqio.WidthCol)
 
 	w.Write(s)
 
 	return f.String()
+}
+
+// assertEqualSeq is a wrapper for asserting the equalvance of two linear.Seq
+func assertEqualSeq(t *testing.T, a, b *linear.Seq) {
+	assert.Equal(t, a.Annotation.ID, b.Annotation.ID,
+		"Annotation.ID should be the same as input",
+	)
+	assert.Equal(t, a.Annotation.Desc, b.Annotation.Desc,
+		"Annotation.Desc should be the same as input.",
+	)
+	assert.Equal(t, a.Annotation.Loc, b.Annotation.Loc,
+		"Annotation.Loc should be the same as input",
+	)
+	assert.Equal(t, a.Annotation.Strand, b.Annotation.Strand,
+		"Annotation.Strand should be the same as input.",
+	)
+	assert.Equal(t, a.Annotation.Conform, b.Annotation.Conform,
+		"Annotation.Conform should be the same as input.",
+	)
+	assert.Equal(t, a.Annotation.Offset, b.Annotation.Offset,
+		"Annotation.Offset should be the same as input.",
+	)
+	assert.Equal(t, a.Seq, b.Seq,
+		"Seq should be the FASTA sequence.",
+	)
 }
 
 func TestReadSeq(t *testing.T) {
@@ -107,27 +132,7 @@ func TestReadSeq(t *testing.T) {
 	s, err := seqio.ReadSeq(f)
 
 	if assert.NoError(t, err) {
-		assert.Equal(t, s.Annotation.ID, seq.Annotation.ID,
-			"Annotation.ID should be the same as input",
-		)
-		assert.Equal(t, s.Annotation.Desc, seq.Annotation.Desc,
-			"Annotation.Desc should be the same as input.",
-		)
-		assert.Equal(t, s.Annotation.Loc, seq.Annotation.Loc,
-			"Annotation.Loc should be the same as input",
-		)
-		assert.Equal(t, s.Annotation.Strand, seq.Annotation.Strand,
-			"Annotation.Strand should be the same as input.",
-		)
-		assert.Equal(t, s.Annotation.Conform, seq.Annotation.Conform,
-			"Annotation.Conform should be the same as input.",
-		)
-		assert.Equal(t, s.Annotation.Offset, seq.Annotation.Offset,
-			"Annotation.Offset should be the same as input.",
-		)
-		assert.Equal(t, s.Seq, seq.Seq,
-			"Seq should be the FASTA sequence.",
-		)
+		assertEqualSeq(t, s, seq)
 	}
 }
 
@@ -135,44 +140,23 @@ func TestReadSeqReaderError(t *testing.T) {
 
 	f := new(MockReader)
 
-	f.On("Read", mock.Anything).Return(0, os.ErrPermission)
-
-	s, err := seqio.ReadSeq(f)
-
-	if assert.Error(t, err) {
-		assert.Nil(t, s,
-			"nil should be returned when an error occurs.",
-		)
+	errs := []error{
+		os.ErrPermission,
+		os.ErrNotExist,
+		os.ErrClosed,
+		io.EOF,
 	}
 
-	f.On("Read", mock.Anything).Return(0, os.ErrNotExist)
+	for _, e := range errs {
+		f.On("Read", mock.Anything).Return(0, e)
 
-	s, err = seqio.ReadSeq(f)
+		s, err := seqio.ReadSeq(f)
 
-	if assert.Error(t, err) {
-		assert.Nil(t, s,
-			"nil should be returned when an error occurs.",
-		)
-	}
-
-	f.On("Read", mock.Anything).Return(0, os.ErrNotExist)
-
-	s, err = seqio.ReadSeq(f)
-
-	if assert.Error(t, err) {
-		assert.Nil(t, s,
-			"nil should be returned when an error occurs.",
-		)
-	}
-
-	f.On("Read", mock.Anything).Return(0, io.EOF)
-
-	s, err = seqio.ReadSeq(f)
-
-	if assert.Error(t, err) {
-		assert.Nil(t, s,
-			"nil should be returned when an error occurs.",
-		)
+		if assert.Error(t, err) {
+			assert.Nil(t, s,
+				"nil should be returned when an error occurs.",
+			)
+		}
 	}
 }
 
@@ -214,27 +198,8 @@ func TestScanSeq(t *testing.T) {
 
 	for _, seq := range seqs {
 		s := <-c
-		assert.Equal(t, s.Annotation.ID, seq.Annotation.ID,
-			"Annotation.ID should be the same as input",
-		)
-		assert.Equal(t, s.Annotation.Desc, seq.Annotation.Desc,
-			"Annotation.Desc should be the same as input.",
-		)
-		assert.Equal(t, s.Annotation.Loc, seq.Annotation.Loc,
-			"Annotation.Loc should be the same as input",
-		)
-		assert.Equal(t, s.Annotation.Strand, seq.Annotation.Strand,
-			"Annotation.Strand should be the same as input.",
-		)
-		assert.Equal(t, s.Annotation.Conform, seq.Annotation.Conform,
-			"Annotation.Conform should be the same as input.",
-		)
-		assert.Equal(t, s.Annotation.Offset, seq.Annotation.Offset,
-			"Annotation.Offset should be the same as input.",
-		)
-		assert.Equal(t, s.Seq, seq.Seq,
-			"Seq should be the FASTA sequence.",
-		)
+
+		assertEqualSeq(t, s, seq)
 	}
 
 	wg.Wait()
@@ -247,41 +212,29 @@ func TestScanSeqReaderError(t *testing.T) {
 	c := make(chan *linear.Seq)
 	f := new(MockReader)
 
-	f.On("Read", mock.Anything).Return(0, os.ErrPermission)
+	errs := []error{
+		os.ErrPermission,
+		os.ErrNotExist,
+		os.ErrClosed,
+		io.EOF,
+	}
 
-	wg.Add(1)
+	for _, err := range errs {
+		f.On("Read", mock.Anything).Return(0, err)
 
-	go assert.Panics(t, func() { seqio.ScanSeq(f, c, &wg) })
+		wg.Add(1)
 
-	s := <-c
+		go assert.Panics(
+			t, func() { seqio.ScanSeq(f, c, &wg) },
+			"ScanSeq should panic when encountered an error",
+		)
 
-	assert.Nil(t, s,
-		"nil should be returned when an error occurs.",
-	)
+		s := <-c
 
-	f.On("Read", mock.Anything).Return(0, os.ErrNotExist)
-
-	wg.Add(1)
-
-	go assert.Panics(t, func() { seqio.ScanSeq(f, c, &wg) })
-
-	s = <-c
-
-	assert.Nil(t, s,
-		"nil should be returned when an error occurs.",
-	)
-
-	f.On("Read", mock.Anything).Return(0, io.EOF)
-
-	wg.Add(1)
-
-	go assert.Panics(t, func() { seqio.ScanSeq(f, c, &wg) })
-
-	s = <-c
-
-	assert.Nil(t, s,
-		"nil should be returned when an error occurs.",
-	)
+		assert.Nil(t, s,
+			"nil should be returned when an error occurs.",
+		)
+	}
 
 	wg.Wait()
 }
@@ -322,7 +275,7 @@ func TestWriteSeq(t *testing.T) {
 
 	wg.Add(1)
 
-	f := bytes.NewBufferString("")
+	f := new(bytes.Buffer)
 
 	go seqio.WriteSeq(f, c, &wg)
 
@@ -349,29 +302,29 @@ func TestWriteSeqWriterError(t *testing.T) {
 	f := new(MockWriter)
 	seq := linear.NewSeq("Foo", []alphabet.Letter("AAAA"), alphabet.DNA)
 
-	f.On("Write", mock.Anything).Return(0, os.ErrPermission)
+	errs := []error{
+		os.ErrPermission,
+		os.ErrNotExist,
+		os.ErrClosed,
+		io.EOF,
+	}
 
-	wg.Add(1)
+	for _, err := range errs {
+		f.On("Write", mock.Anything).Return(0, err)
 
-	c1 := make(chan *linear.Seq)
+		wg.Add(1)
 
-	go assert.Panics(t, func() { seqio.WriteSeq(f, c1, &wg) })
+		c := make(chan *linear.Seq)
 
-	c1 <- seq
+		go assert.Panics(
+			t, func() { seqio.WriteSeq(f, c, &wg) },
+			"WriteSeq should panic when encountered an error",
+		)
 
-	f.On("Write", mock.Anything).Return(0, os.ErrClosed)
+		c <- seq
 
-	close(c1)
-
-	wg.Add(1)
-
-	c2 := make(chan *linear.Seq)
-
-	go assert.Panics(t, func() { seqio.WriteSeq(f, c2, &wg) })
-
-	c2 <- seq
-
-	close(c2)
+		close(c)
+	}
 
 	wg.Wait()
 }
