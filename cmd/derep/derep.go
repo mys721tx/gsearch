@@ -47,32 +47,25 @@ func main() {
 	flag.Parse()
 
 	var fin, fout *os.File
-	var err error
 
 	if *pin == "" {
 		fin = os.Stdin
+	} else if f, err := os.Open(*pin); err == nil {
+		fin = f
 	} else {
-		fin, err = os.Open(*pin)
-	}
-
-	if err != nil {
 		log.Panicf("failed to open %q: %v", *pin, err)
 	}
 
 	if *pout == "" {
-		fout = os.Stdin
+		fout = os.Stdout
+	} else if f, err := os.Create(*pout); err == nil {
+		fout = f
 	} else {
-		fout, err = os.Create(*pout)
-	}
-
-	if err != nil {
 		log.Panicf("failed to open %q: %v", *pout, err)
 	}
 
 	defer func() {
-		err = fout.Close()
-
-		if err != nil {
+		if err := fout.Close(); err != nil {
 			log.Panicf("failed to close %q: %v", *pout, err)
 		}
 	}()
@@ -80,9 +73,7 @@ func main() {
 	w := bufio.NewWriter(fout)
 
 	defer func() {
-		err = w.Flush()
-
-		if err != nil {
+		if err := w.Flush(); err != nil {
 			log.Panicf("failed to flush %q: %v", *pout, err)
 		}
 	}()
@@ -90,7 +81,7 @@ func main() {
 	c := make(chan *linear.Seq)
 
 	wg.Add(2)
-	go seqio.ScanSeq(fin, c, &wg)
-	go derep.DeRep(c, w, &wg) // TODO: handling panic
+	go seqio.ScanSeq(fin, c, &wg) // TODO: handling panic
+	go derep.DeRep(c, w, &wg)     // TODO: handling panic
 	wg.Wait()
 }
