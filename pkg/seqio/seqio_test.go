@@ -1,21 +1,19 @@
-/*
- *  GSEARCH: A concurrent tool suite for metagenomics
- *  Copyright (C) 2018  Yishen Miao
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- */
+// GSEARCH: A concurrent tool suite for metagenomics
+// Copyright (C) 2018  Yishen Miao
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 package seqio_test
 
 import (
@@ -100,23 +98,23 @@ func writeString(s *linear.Seq) string {
 
 // assertEqualSeq is a wrapper for asserting the equalvance of two linear.Seq
 func assertEqualSeq(t *testing.T, a, b *linear.Seq) {
-	assert.Equal(t, a.Annotation.ID, b.Annotation.ID,
-		"Annotation.ID should be the same as input",
+	assert.Equal(t, a.ID, b.ID,
+		"ID should be the same as input",
 	)
-	assert.Equal(t, a.Annotation.Desc, b.Annotation.Desc,
-		"Annotation.Desc should be the same as input.",
+	assert.Equal(t, a.Desc, b.Desc,
+		"Desc should be the same as input.",
 	)
-	assert.Equal(t, a.Annotation.Loc, b.Annotation.Loc,
-		"Annotation.Loc should be the same as input",
+	assert.Equal(t, a.Loc, b.Loc,
+		"Loc should be the same as input",
 	)
-	assert.Equal(t, a.Annotation.Strand, b.Annotation.Strand,
-		"Annotation.Strand should be the same as input.",
+	assert.Equal(t, a.Strand, b.Strand,
+		"Strand should be the same as input.",
 	)
-	assert.Equal(t, a.Annotation.Conform, b.Annotation.Conform,
-		"Annotation.Conform should be the same as input.",
+	assert.Equal(t, a.Conform, b.Conform,
+		"Conform should be the same as input.",
 	)
-	assert.Equal(t, a.Annotation.Offset, b.Annotation.Offset,
-		"Annotation.Offset should be the same as input.",
+	assert.Equal(t, a.Offset, b.Offset,
+		"Offset should be the same as input.",
 	)
 	assert.Equal(t, a.Seq, b.Seq,
 		"Seq should be the FASTA sequence.",

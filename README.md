@@ -1,5 +1,7 @@
 # GSEARCH
 
+[![GoDoc](https://godoc.org/github.com/mys721tx/gsearch?status.svg)](https://godoc.org/github.com/mys721tx/gsearch)
+
 [vsearch](https://github.com/torognes/vsearch) implemented in Go.
 
 ## Description
@@ -9,7 +11,7 @@ derepuliator is implemented.
 
 ## Installation
 
-1. Clone the repo: `git clone https://github.com/mys721tx/gsearch.git`
+1. Clone this repository: `git clone https://github.com/mys721tx/gsearch.git`
 2. Run `dep ensure` to install dependencies.
     * See [Install Instruction](https://golang.org/doc/install) to install Go.
         GSEARCH has been tested on Go 1.10.2.
