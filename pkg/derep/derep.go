@@ -20,12 +20,17 @@ package derep
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/biogo/biogo/alphabet"
+	"github.com/biogo/biogo/io/seqio/fasta"
 	"github.com/biogo/biogo/seq/linear"
+
+	"github.com/mys721tx/gsearch/pkg/seqio"
 )
 
 // Cluster is a struct that stores the name and size of an FASTA annotation.
@@ -96,11 +101,9 @@ func ParseAnno(seq *linear.Seq) *Cluster {
 // the new sequence with the cluster in the map. if not, DeRep adds a new
 // cluster into the map.
 //
-// After the channel out is closed, DeRep iterates through the map and send all
-// sequences to the channel out.
-func DeRep(in <-chan *linear.Seq, out chan<- *linear.Seq, wg *sync.WaitGroup) {
+// After the channel in is closed, DeRep writes the map to a file.
+func DeRep(in <-chan *linear.Seq, f io.Writer, wg *sync.WaitGroup) {
 	defer wg.Done()
-	defer close(out)
 
 	rep := make(map[string]*Cluster)
 
@@ -115,11 +118,17 @@ func DeRep(in <-chan *linear.Seq, out chan<- *linear.Seq, wg *sync.WaitGroup) {
 		}
 	}
 
+	w := fasta.NewWriter(f, seqio.WidthCol)
+
 	for s, v := range rep {
-		out <- linear.NewSeq(
+		seq := linear.NewSeq(
 			fmt.Sprintf("%v;size=%d", v.Name, v.Size),
 			[]alphabet.Letter(s),
 			alphabet.DNA,
 		)
+
+		if _, err := w.Write(seq); err != nil {
+			log.Panicf("Error occurred during write: %s", err)
+		}
 	}
 }

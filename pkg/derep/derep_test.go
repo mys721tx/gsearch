@@ -17,6 +17,7 @@
 package derep_test
 
 import (
+	"bytes"
 	"sync"
 	"testing"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mys721tx/gsearch/pkg/derep"
+	"github.com/mys721tx/gsearch/pkg/seqio"
 )
 
 func TestParseAnno(t *testing.T) {
@@ -142,24 +144,28 @@ func TestDeRep(t *testing.T) {
 		),
 	}
 
-	cin := make(chan *linear.Seq)
-	cout := make(chan *linear.Seq)
+	c := make(chan *linear.Seq)
+
+	w := new(bytes.Buffer)
 
 	wg.Add(1)
-	go derep.DeRep(cin, cout, &wg)
+
+	go derep.DeRep(c, w, &wg)
 
 	for _, seq := range seqs {
-		cin <- seq
+		c <- seq
 	}
 
-	close(cin)
+	close(c)
 
-	res := derep.ParseAnno(<-cout)
+	wg.Wait()
+
+	seq, _ := seqio.ReadSeq(w)
+
+	res := derep.ParseAnno(seq)
 
 	assert.Equal(t, res.Name, "foo",
 		"Name should be the first monad of the first sequence.",
 	)
 	assert.Equal(t, res.Size, 114, "Size should be the sum of all sizes.")
-
-	wg.Wait()
 }

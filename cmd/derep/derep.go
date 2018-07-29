@@ -87,12 +87,10 @@ func main() {
 		}
 	}()
 
-	cin := make(chan *linear.Seq)
-	cout := make(chan *linear.Seq)
+	c := make(chan *linear.Seq)
 
-	wg.Add(3)
-	go seqio.ScanSeq(fin, cin, &wg)
-	go derep.DeRep(cin, cout, &wg)  // TODO: handling panic
-	go seqio.WriteSeq(w, cout, &wg) // TODO: handling panic
+	wg.Add(2)
+	go seqio.ScanSeq(fin, c, &wg)
+	go derep.DeRep(c, w, &wg) // TODO: handling panic
 	wg.Wait()
 }
