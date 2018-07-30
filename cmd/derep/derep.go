@@ -40,6 +40,16 @@ var (
 		"",
 		"path to the output FASTA file, default to stdout.",
 	)
+	min = flag.Int(
+		"min",
+		derep.MinLen,
+		"minimal abundance of a sequence, default to 0.",
+	)
+	max = flag.Int(
+		"max",
+		derep.MaxLen,
+		"maximal abundance of a sequence, default to 0.",
+	)
 	wg sync.WaitGroup
 )
 
@@ -81,7 +91,7 @@ func main() {
 	c := make(chan *linear.Seq)
 
 	wg.Add(2)
-	go seqio.ScanSeq(fin, c, &wg) // TODO: handling panic
-	go derep.DeRep(c, w, &wg)     // TODO: handling panic
+	go seqio.ScanSeq(fin, c, &wg)         // TODO: handling panic
+	go derep.DeRep(c, w, *min, *max, &wg) // TODO: handling panic
 	wg.Wait()
 }

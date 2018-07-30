@@ -18,6 +18,8 @@ package derep_test
 
 import (
 	"bytes"
+	"io"
+	"os"
 	"sync"
 	"testing"
 
@@ -25,10 +27,21 @@ import (
 	"github.com/biogo/biogo/seq/linear"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
+	"github.com/mys721tx/gsearch/mocks"
 
 	"github.com/mys721tx/gsearch/pkg/derep"
 	"github.com/mys721tx/gsearch/pkg/seqio"
 )
+
+var wg sync.WaitGroup
+
+func parseBuf(r io.Reader) *derep.Cluster {
+	seq, _ := seqio.ReadSeq(r)
+
+	return derep.ParseAnno(seq)
+}
 
 func TestParseAnno(t *testing.T) {
 	seq := linear.NewSeq(
@@ -123,9 +136,6 @@ func TestParseAnnoMultipleMonads(t *testing.T) {
 }
 
 func TestDeRep(t *testing.T) {
-
-	var wg sync.WaitGroup
-
 	seqs := []*linear.Seq{
 		linear.NewSeq(
 			"foo;size=100",
@@ -150,7 +160,7 @@ func TestDeRep(t *testing.T) {
 
 	wg.Add(1)
 
-	go derep.DeRep(c, w, &wg)
+	go derep.DeRep(c, w, derep.MinLen, derep.MaxLen, &wg)
 
 	for _, seq := range seqs {
 		c <- seq
@@ -160,12 +170,119 @@ func TestDeRep(t *testing.T) {
 
 	wg.Wait()
 
-	seq, _ := seqio.ReadSeq(w)
-
-	res := derep.ParseAnno(seq)
+	res := parseBuf(w)
 
 	assert.Equal(t, res.Name, "foo",
 		"Name should be the first monad of the first sequence.",
 	)
 	assert.Equal(t, res.Size, 114, "Size should be the sum of all sizes.")
+}
+
+func TestDeRepMinFilter(t *testing.T) {
+	seqs := []*linear.Seq{
+		linear.NewSeq(
+			"foo;size=1",
+			[]alphabet.Letter("ATTC"),
+			alphabet.DNA,
+		),
+		linear.NewSeq(
+			"bar;size=1",
+			[]alphabet.Letter("GGGG"),
+			alphabet.DNA,
+		),
+	}
+
+	c := make(chan *linear.Seq)
+
+	w := new(bytes.Buffer)
+
+	wg.Add(1)
+
+	go derep.DeRep(c, w, 100, derep.MaxLen, &wg)
+
+	for _, seq := range seqs {
+		c <- seq
+	}
+
+	close(c)
+
+	wg.Wait()
+
+	assert.Empty(t, w,
+		"Sequences below the minimal length should be filtered.",
+	)
+}
+
+func TestDeRepMaxFilter(t *testing.T) {
+	seqs := []*linear.Seq{
+		linear.NewSeq(
+			"foo;size=101",
+			[]alphabet.Letter("ATTC"),
+			alphabet.DNA,
+		),
+		linear.NewSeq(
+			"bar;size=101",
+			[]alphabet.Letter("GGGG"),
+			alphabet.DNA,
+		),
+	}
+
+	c := make(chan *linear.Seq)
+
+	w := new(bytes.Buffer)
+
+	wg.Add(1)
+
+	go derep.DeRep(c, w, derep.MinLen, 100, &wg)
+
+	for _, seq := range seqs {
+		c <- seq
+	}
+
+	close(c)
+
+	wg.Wait()
+
+	assert.Empty(t, w,
+		"Sequences above the maximal length should be filtered.",
+	)
+}
+
+func TestDeRepWriterError(t *testing.T) {
+	seq := linear.NewSeq(
+		"size=100;foo;spam=egg;bar",
+		[]alphabet.Letter("ATTC"),
+		alphabet.DNA,
+	)
+
+	errs := []error{
+		os.ErrPermission,
+		os.ErrNotExist,
+		os.ErrClosed,
+		io.EOF,
+	}
+
+	w := new(mocks.Writer)
+
+	for _, err := range errs {
+		w.On("Write", mock.Anything).Return(0, err)
+
+		wg.Add(1)
+
+		c := make(chan *linear.Seq)
+
+		go assert.Panics(
+			t, func() {
+				derep.DeRep(c, w, derep.MinLen, derep.MaxLen, &wg)
+			},
+			"DeRep should panic when its writer encounters an error.",
+		)
+
+		c <- seq
+
+		close(c)
+
+		wg.Wait()
+	}
+
 }

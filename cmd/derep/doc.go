@@ -36,9 +36,13 @@ Usage:
 	derep [flags]
 
 The flags are:
-	-in filename
+	-in string
 		path to the sequence FASTA file, default to stdin.
-	-out filename
+	-max int
+		maximal abundance of a sequence, default to 0.
+	-min int
+		minimal abundance of a sequence, default to 0.
+	-out string
 		path to the output FASTA file, default to stdout.
 
 Example:

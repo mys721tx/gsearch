@@ -35,6 +35,8 @@ import (
 	"github.com/mys721tx/gsearch/pkg/seqio"
 )
 
+var wg sync.WaitGroup
+
 // writeString writes the sequence to string via a writer
 func writeString(s *linear.Seq) string {
 	f := new(bytes.Buffer)
@@ -72,7 +74,6 @@ func assertEqualSeq(t *testing.T, a, b *linear.Seq) {
 }
 
 func TestReadSeq(t *testing.T) {
-
 	seq := linear.NewSeq("Foo", []alphabet.Letter("AAAA"), alphabet.DNA)
 
 	f := bytes.NewBufferString(writeString(seq))
@@ -85,7 +86,6 @@ func TestReadSeq(t *testing.T) {
 }
 
 func TestReadSeqReaderError(t *testing.T) {
-
 	f := new(mocks.Reader)
 
 	errs := []error{
@@ -109,7 +109,6 @@ func TestReadSeqReaderError(t *testing.T) {
 }
 
 func TestReadSeqMalform(t *testing.T) {
-
 	f := bytes.NewBufferString("AAAA\n")
 
 	s, err := seqio.ReadSeq(f)
@@ -122,9 +121,6 @@ func TestReadSeqMalform(t *testing.T) {
 }
 
 func TestScanSeq(t *testing.T) {
-
-	var wg sync.WaitGroup
-
 	seqs := []*linear.Seq{
 		linear.NewSeq("Foo", []alphabet.Letter("AAAA"), alphabet.DNA),
 		linear.NewSeq("Bar", []alphabet.Letter("GGGG"), alphabet.DNA),
@@ -154,9 +150,6 @@ func TestScanSeq(t *testing.T) {
 }
 
 func TestScanSeqReaderError(t *testing.T) {
-
-	var wg sync.WaitGroup
-
 	c := make(chan *linear.Seq)
 	f := new(mocks.Reader)
 
@@ -188,9 +181,6 @@ func TestScanSeqReaderError(t *testing.T) {
 }
 
 func TestScanSeqMalform(t *testing.T) {
-
-	var wg sync.WaitGroup
-
 	f := bytes.NewBufferString("AAAA\n>Foo\nAAAA")
 
 	c := make(chan *linear.Seq)
@@ -211,9 +201,6 @@ func TestScanSeqMalform(t *testing.T) {
 }
 
 func TestWriteSeq(t *testing.T) {
-
-	var wg sync.WaitGroup
-
 	seqs := []*linear.Seq{
 		linear.NewSeq("Foo", []alphabet.Letter("AAAA"), alphabet.DNA),
 		linear.NewSeq("Bar", []alphabet.Letter("GGGG"), alphabet.DNA),
@@ -244,9 +231,6 @@ func TestWriteSeq(t *testing.T) {
 }
 
 func TestWriteSeqWriterError(t *testing.T) {
-
-	var wg sync.WaitGroup
-
 	f := new(mocks.Writer)
 	seq := linear.NewSeq("Foo", []alphabet.Letter("AAAA"), alphabet.DNA)
 
@@ -266,7 +250,7 @@ func TestWriteSeqWriterError(t *testing.T) {
 
 		go assert.Panics(
 			t, func() { seqio.WriteSeq(f, c, &wg) },
-			"WriteSeq should panic when encountered an error",
+			"WriteSeq should panic when its writer encounters an error.",
 		)
 
 		c <- seq
