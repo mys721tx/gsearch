@@ -74,25 +74,19 @@ func main() {
 		GapOpen: *gapopen,
 	}
 
-	fRef, err := os.Open(*ref)
+	if fRef, err := os.Open(*ref); err != nil {
+		log.Fatalf("failed to open %q: %s", *ref, err)
+	} else if sRef, err := seqio.ReadSeq(fRef); err != nil {
+		log.Fatalf("failed to read reference sequence %q: %s", *ref, err)
+	} else if fTgt, err := os.Open(*tgt); err != nil {
+		log.Fatalf("failed to open %q: %s", *tgt, err)
+	} else {
+		csTgt := make(chan *linear.Seq)
 
-	if err != nil {
-		log.Fatalf("failed to open %q: %v", *ref, err)
+		wg.Add(2)
+		go seqio.ScanSeq(fTgt, csTgt, &wg)
+		go alignSW(sRef, nw, csTgt)
+
+		wg.Wait()
 	}
-
-	sRef := seqio.ReadSeq(fRef)
-
-	fTgt, err := os.Open(*tgt)
-
-	if err != nil {
-		log.Fatalf("failed to open %q: %v", *tgt, err)
-	}
-
-	csTgt := make(chan *linear.Seq)
-
-	wg.Add(2)
-	go seqio.ScanSeq(fTgt, csTgt, &wg)
-	go alignSW(sRef, nw, csTgt)
-
-	wg.Wait()
 }
