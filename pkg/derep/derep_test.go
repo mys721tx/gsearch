@@ -52,7 +52,7 @@ func TestParseAnno(t *testing.T) {
 
 	res := derep.ParseAnno(seq)
 
-	assert.Equal(t, res.Name, "foo", "Name should be the first monad.")
+	assert.Equal(t, res.ID, "foo", "Name should be the first monad.")
 	assert.Equal(t, res.Size, 100, "Size should be the value of size.")
 }
 func TestParseAnnoMissingSize(t *testing.T) {
@@ -64,7 +64,7 @@ func TestParseAnnoMissingSize(t *testing.T) {
 
 	res := derep.ParseAnno(seq)
 
-	assert.Equal(t, res.Name, "foo", "Name should be the first monad.")
+	assert.Equal(t, res.ID, "foo", "Name should be the first monad.")
 	assert.Equal(t, res.Size, 1, "Size should be 1 when size is missing.")
 }
 
@@ -77,7 +77,7 @@ func TestParseAnnoUnrecognizedSize(t *testing.T) {
 
 	res := derep.ParseAnno(seq)
 
-	assert.Equal(t, res.Name, "foo", "Name should be the first monad.")
+	assert.Equal(t, res.ID, "foo", "Name should be the first monad.")
 	assert.Equal(t, res.Size, 1, "Size should be 1 when size is not a int.")
 }
 
@@ -90,7 +90,7 @@ func TestParseAnnoNegativeSize(t *testing.T) {
 
 	res := derep.ParseAnno(seq)
 
-	assert.Equal(t, res.Name, "foo", "Name should be the first monad.")
+	assert.Equal(t, res.ID, "foo", "Name should be the first monad.")
 	assert.Equal(t, res.Size, 1, "Size should be 1 when size is negative.")
 }
 
@@ -103,7 +103,7 @@ func TestParseAnnoMultipleSizes(t *testing.T) {
 
 	res := derep.ParseAnno(seq)
 
-	assert.Equal(t, res.Name, "foo", "Name should be the first monad.")
+	assert.Equal(t, res.ID, "foo", "Name should be the first monad.")
 	assert.Equal(t, res.Size, 200, "Size should be the last value of size.")
 }
 
@@ -116,7 +116,7 @@ func TestParseAnnoMissingName(t *testing.T) {
 
 	res := derep.ParseAnno(seq)
 
-	assert.Equal(t, res.Name, "sequence",
+	assert.Equal(t, res.ID, "sequence",
 		"Name should default to sequence.",
 	)
 	assert.Equal(t, res.Size, 100, "Size should be the value of size.")
@@ -131,7 +131,7 @@ func TestParseAnnoMultipleMonads(t *testing.T) {
 
 	res := derep.ParseAnno(seq)
 
-	assert.Equal(t, res.Name, "foo", "Name should be the first monad.")
+	assert.Equal(t, res.ID, "foo", "Name should be the first monad.")
 	assert.Equal(t, res.Size, 100, "Size should be the value of size.")
 }
 
@@ -172,7 +172,7 @@ func TestDeRep(t *testing.T) {
 
 	res := parseBuf(w)
 
-	assert.Equal(t, res.Name, "foo",
+	assert.Equal(t, res.ID, "foo",
 		"Name should be the first monad of the first sequence.",
 	)
 	assert.Equal(t, res.Size, 114, "Size should be the sum of all sizes.")
