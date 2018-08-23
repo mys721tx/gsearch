@@ -25,6 +25,7 @@ import (
 
 	"github.com/biogo/biogo/seq/linear"
 
+	"github.com/mys721tx/gsearch/pkg/cluster"
 	"github.com/mys721tx/gsearch/pkg/derep"
 	"github.com/mys721tx/gsearch/pkg/seqio"
 )
@@ -42,12 +43,12 @@ var (
 	)
 	min = flag.Int(
 		"min",
-		derep.MinLen,
+		cluster.MinLen,
 		"minimal abundance of a sequence, default to 0.",
 	)
 	max = flag.Int(
 		"max",
-		derep.MaxLen,
+		cluster.MaxLen,
 		"maximal abundance of a sequence, default to 0.",
 	)
 	wg sync.WaitGroup

@@ -23,13 +23,12 @@ import (
 	"log"
 	"os"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/biogo/biogo/io/seqio/fasta"
 	"github.com/biogo/biogo/seq/linear"
 
-	"github.com/mys721tx/gsearch/pkg/derep"
+	"github.com/mys721tx/gsearch/pkg/cluster"
 	"github.com/mys721tx/gsearch/pkg/seqio"
 )
 
@@ -46,41 +45,16 @@ var (
 	)
 	min = flag.Int(
 		"min",
-		derep.MinLen,
+		cluster.MinLen,
 		"minimal abundance of a sequence, default to 0.",
 	)
 	max = flag.Int(
 		"max",
-		derep.MaxLen,
+		cluster.MaxLen,
 		"maximal abundance of a sequence, default to 0.",
 	)
 	wg sync.WaitGroup
 )
-
-// ByAbundance implements methods to sort a slice of a cluster
-type ByAbundance []*derep.Cluster
-
-// Len returns the length of a ByAbundance.
-func (c ByAbundance) Len() int { return len(c) }
-
-// Swap swaps two elements in a ByAbundance.
-func (c ByAbundance) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
-
-// Less establishes the order between two clusters when sort ByAbundance.
-//
-// The higher abundance cluster is in front of the lower abundance sequence.
-// When two clusters have same abundance, they are sorted by the lexicographical
-//order of the labels.
-func (c ByAbundance) Less(i, j int) bool {
-	if c[i].Size > c[j].Size {
-		return true
-	} else if c[i].Size < c[j].Size {
-		return false
-	} else if o := strings.Compare(c[i].ID, c[j].ID); o == -1 {
-		return true
-	}
-	return false
-}
 
 func main() {
 	flag.Parse()
@@ -122,15 +96,15 @@ func main() {
 	wg.Add(1)
 	go seqio.ScanSeq(fin, ch, &wg) // TODO: handling panic
 
-	l := func() []*derep.Cluster {
+	l := func() []*cluster.Cluster {
 
-		var l []*derep.Cluster
+		var l []*cluster.Cluster
 		for s := range ch {
-			c := derep.ParseAnno(s)
+			c := cluster.ParseAnno(s)
 			l = append(l, c)
 		}
 
-		sort.Sort(ByAbundance(l))
+		sort.Sort(cluster.ByAbundance(l))
 
 		return l
 	}()

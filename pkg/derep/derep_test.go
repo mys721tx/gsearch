@@ -31,108 +31,17 @@ import (
 
 	"github.com/mys721tx/gsearch/mocks"
 
+	"github.com/mys721tx/gsearch/pkg/cluster"
 	"github.com/mys721tx/gsearch/pkg/derep"
 	"github.com/mys721tx/gsearch/pkg/seqio"
 )
 
 var wg sync.WaitGroup
 
-func parseBuf(r io.Reader) *derep.Cluster {
+func parseBuf(r io.Reader) *cluster.Cluster {
 	seq, _ := seqio.ReadSeq(r)
 
-	return derep.ParseAnno(seq)
-}
-
-func TestParseAnno(t *testing.T) {
-	seq := linear.NewSeq(
-		"foo;size=100",
-		[]alphabet.Letter("ATTC"),
-		alphabet.DNA,
-	)
-
-	res := derep.ParseAnno(seq)
-
-	assert.Equal(t, res.ID, "foo", "Name should be the first monad.")
-	assert.Equal(t, res.Size, 100, "Size should be the value of size.")
-}
-func TestParseAnnoMissingSize(t *testing.T) {
-	seq := linear.NewSeq(
-		"foo",
-		[]alphabet.Letter("ATTC"),
-		alphabet.DNA,
-	)
-
-	res := derep.ParseAnno(seq)
-
-	assert.Equal(t, res.ID, "foo", "Name should be the first monad.")
-	assert.Equal(t, res.Size, 1, "Size should be 1 when size is missing.")
-}
-
-func TestParseAnnoUnrecognizedSize(t *testing.T) {
-	seq := linear.NewSeq(
-		"foo;size=spam",
-		[]alphabet.Letter("ATTC"),
-		alphabet.DNA,
-	)
-
-	res := derep.ParseAnno(seq)
-
-	assert.Equal(t, res.ID, "foo", "Name should be the first monad.")
-	assert.Equal(t, res.Size, 1, "Size should be 1 when size is not a int.")
-}
-
-func TestParseAnnoNegativeSize(t *testing.T) {
-	seq := linear.NewSeq(
-		"foo;size=-200",
-		[]alphabet.Letter("ATTC"),
-		alphabet.DNA,
-	)
-
-	res := derep.ParseAnno(seq)
-
-	assert.Equal(t, res.ID, "foo", "Name should be the first monad.")
-	assert.Equal(t, res.Size, 1, "Size should be 1 when size is negative.")
-}
-
-func TestParseAnnoMultipleSizes(t *testing.T) {
-	seq := linear.NewSeq(
-		"foo;size=100;size=200",
-		[]alphabet.Letter("ATTC"),
-		alphabet.DNA,
-	)
-
-	res := derep.ParseAnno(seq)
-
-	assert.Equal(t, res.ID, "foo", "Name should be the first monad.")
-	assert.Equal(t, res.Size, 200, "Size should be the last value of size.")
-}
-
-func TestParseAnnoMissingName(t *testing.T) {
-	seq := linear.NewSeq(
-		"size=100",
-		[]alphabet.Letter("ATTC"),
-		alphabet.DNA,
-	)
-
-	res := derep.ParseAnno(seq)
-
-	assert.Equal(t, res.ID, "sequence",
-		"Name should default to sequence.",
-	)
-	assert.Equal(t, res.Size, 100, "Size should be the value of size.")
-}
-
-func TestParseAnnoMultipleMonads(t *testing.T) {
-	seq := linear.NewSeq(
-		"size=100;foo;spam=egg;bar",
-		[]alphabet.Letter("ATTC"),
-		alphabet.DNA,
-	)
-
-	res := derep.ParseAnno(seq)
-
-	assert.Equal(t, res.ID, "foo", "Name should be the first monad.")
-	assert.Equal(t, res.Size, 100, "Size should be the value of size.")
+	return cluster.ParseAnno(seq)
 }
 
 func TestDeRep(t *testing.T) {
@@ -160,7 +69,7 @@ func TestDeRep(t *testing.T) {
 
 	wg.Add(1)
 
-	go derep.DeRep(c, w, derep.MinLen, derep.MaxLen, &wg)
+	go derep.DeRep(c, w, cluster.MinLen, cluster.MaxLen, &wg)
 
 	for _, seq := range seqs {
 		c <- seq
@@ -176,76 +85,6 @@ func TestDeRep(t *testing.T) {
 		"Name should be the first monad of the first sequence.",
 	)
 	assert.Equal(t, res.Size, 114, "Size should be the sum of all sizes.")
-}
-
-func TestDeRepMinFilter(t *testing.T) {
-	seqs := []*linear.Seq{
-		linear.NewSeq(
-			"foo;size=1",
-			[]alphabet.Letter("ATTC"),
-			alphabet.DNA,
-		),
-		linear.NewSeq(
-			"bar;size=1",
-			[]alphabet.Letter("GGGG"),
-			alphabet.DNA,
-		),
-	}
-
-	c := make(chan *linear.Seq)
-
-	w := new(bytes.Buffer)
-
-	wg.Add(1)
-
-	go derep.DeRep(c, w, 100, derep.MaxLen, &wg)
-
-	for _, seq := range seqs {
-		c <- seq
-	}
-
-	close(c)
-
-	wg.Wait()
-
-	assert.Empty(t, w,
-		"Sequences below the minimal length should be filtered.",
-	)
-}
-
-func TestDeRepMaxFilter(t *testing.T) {
-	seqs := []*linear.Seq{
-		linear.NewSeq(
-			"foo;size=101",
-			[]alphabet.Letter("ATTC"),
-			alphabet.DNA,
-		),
-		linear.NewSeq(
-			"bar;size=101",
-			[]alphabet.Letter("GGGG"),
-			alphabet.DNA,
-		),
-	}
-
-	c := make(chan *linear.Seq)
-
-	w := new(bytes.Buffer)
-
-	wg.Add(1)
-
-	go derep.DeRep(c, w, derep.MinLen, 100, &wg)
-
-	for _, seq := range seqs {
-		c <- seq
-	}
-
-	close(c)
-
-	wg.Wait()
-
-	assert.Empty(t, w,
-		"Sequences above the maximal length should be filtered.",
-	)
 }
 
 func TestDeRepWriterError(t *testing.T) {
@@ -273,7 +112,10 @@ func TestDeRepWriterError(t *testing.T) {
 
 		go assert.Panics(
 			t, func() {
-				derep.DeRep(c, w, derep.MinLen, derep.MaxLen, &wg)
+				derep.DeRep(
+					c, w,
+					cluster.MinLen, cluster.MaxLen, &wg,
+				)
 			},
 			"DeRep should panic when its writer encounters an error.",
 		)
