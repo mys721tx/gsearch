@@ -147,6 +147,18 @@ func TestParseAnnoMultipleMonads(t *testing.T) {
 	assert.Equal(t, res.Size, 100, "Size should be the value of size.")
 }
 
+func BenchmarkParseAnno(b *testing.B) {
+	seq := linear.NewSeq(
+		"size=100;foo;spam=egg;bar",
+		[]alphabet.Letter("AAAA"),
+		alphabet.DNA,
+	)
+
+	for n := 0; n < b.N; n++ {
+		cluster.ParseAnno(seq)
+	}
+}
+
 func TestClusterPassFilter(t *testing.T) {
 	seq := cluster.Cluster{
 		Size: 100,
