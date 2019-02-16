@@ -4,8 +4,6 @@ os:
   - osx
 go:
   - '1.11'
-before_install:
-  - GO111MODULE=on go mod vendor
 script:
   - GO111MODULE=on ./test.sh
 after_success:
