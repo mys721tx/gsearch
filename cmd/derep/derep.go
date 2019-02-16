@@ -31,53 +31,63 @@ import (
 )
 
 var (
-	pin = flag.String(
-		"in",
-		"",
-		"path to the sequence FASTA file, default to stdin.",
-	)
-	pout = flag.String(
-		"out",
-		"",
-		"path to the output FASTA file, default to stdout.",
-	)
-	min = flag.Int(
+	pin, pout string
+	max, min  int
+	wg        sync.WaitGroup
+)
+
+func main() {
+
+	flag.IntVar(
+		&min,
 		"min",
 		cluster.MinLen,
 		"minimal abundance of a sequence, default to 0.",
 	)
-	max = flag.Int(
+
+	flag.IntVar(
+		&max,
 		"max",
 		cluster.MaxLen,
 		"maximal abundance of a sequence, default to 0.",
 	)
-	wg sync.WaitGroup
-)
 
-func main() {
+	flag.StringVar(
+		&pin,
+		"in",
+		"",
+		"path to the sequence FASTA file, default to stdin.",
+	)
+
+	flag.StringVar(
+		&pout,
+		"out",
+		"",
+		"path to the output FASTA file, default to stdout.",
+	)
 	flag.Parse()
 
 	var fin, fout *os.File
 
-	if *pin == "" {
+	if pin == "" {
 		fin = os.Stdin
-	} else if f, err := os.Open(*pin); err == nil {
+	} else if f, err := os.Open(pin); err == nil {
 		fin = f
 	} else {
-		log.Panicf("failed to open %q: %v", *pin, err)
+		log.Panicf("failed to open %q: %v", pin, err)
 	}
 
-	if *pout == "" {
+	if pout == "" {
 		fout = os.Stdout
-	} else if f, err := os.Create(*pout); err == nil {
+	} else if f, err := os.Create(pout); err == nil {
 		fout = f
 	} else {
-		log.Panicf("failed to open %q: %v", *pout, err)
+		log.Panicf("failed to open %q: %v", pout, err)
 	}
 
 	defer func() {
 		if err := fout.Close(); err != nil {
-			log.Panicf("failed to close %q: %v", *pout, err)
+			log.Panicf("failed to close %q: %v", pout, err)
 		}
 	}()
 
@@ -85,14 +95,14 @@ func main() {
 
 	defer func() {
 		if err := w.Flush(); err != nil {
-			log.Panicf("failed to flush %q: %v", *pout, err)
+			log.Panicf("failed to flush %q: %v", pout, err)
 		}
 	}()
 
 	c := make(chan *linear.Seq)
 
 	wg.Add(2)
-	go seqio.ScanSeq(fin, c, &wg)         // TODO: handling panic
-	go derep.DeRep(c, w, *min, *max, &wg) // TODO: handling panic
+	go seqio.ScanSeq(fin, c, &wg)       // TODO: handling panic
+	go derep.DeRep(c, w, min, max, &wg) // TODO: handling panic
 	wg.Wait()
 }
