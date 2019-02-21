@@ -23,8 +23,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/biogo/biogo/seq/linear"
-
 	"github.com/mys721tx/gsearch/pkg/cluster"
 	"github.com/mys721tx/gsearch/pkg/derep"
 	"github.com/mys721tx/gsearch/pkg/seqio"
@@ -99,10 +97,7 @@ func main() {
 		}
 	}()
 
-	c := make(chan *linear.Seq)
+	c := seqio.ScanSeq(fin) // TODO: handling panic
 
-	wg.Add(2)
-	go seqio.ScanSeq(fin, c, &wg)       // TODO: handling panic
-	go derep.DeRep(c, w, min, max, &wg) // TODO: handling panic
-	wg.Wait()
+	derep.DeRep(c, w, min, max) // TODO: handling panic
 }

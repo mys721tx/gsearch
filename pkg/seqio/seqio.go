@@ -56,9 +56,8 @@ func ReadSeq(f io.Reader) (*linear.Seq, error) {
 //
 // If the underlaying reader has encountered any error, ScanSeq will panic as
 // the reader can no longer be read.
-func ScanSeq(f io.Reader, out chan<- *linear.Seq, wg *sync.WaitGroup) {
-	defer wg.Done()
-	defer close(out)
+func ScanSeq(f io.Reader) []*linear.Seq {
+	out := []*linear.Seq{}
 
 	r := fasta.NewReader(f, linear.NewSeq("", nil, alphabet.DNAgapped))
 
@@ -67,12 +66,14 @@ func ScanSeq(f io.Reader, out chan<- *linear.Seq, wg *sync.WaitGroup) {
 	for sc.Next() {
 		s := sc.Seq()
 		// Type assertion to linear.Seq
-		out <- s.(*linear.Seq)
+		out = append(out, s.(*linear.Seq))
 	}
 
 	if err := sc.Error(); err != nil {
 		log.Panicf("Error occurred during scan: %s", err)
 	}
+
+	return out
 }
 
 // WriteSeq writes sequences from a channel to a fasta file.

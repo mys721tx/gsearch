@@ -21,7 +21,6 @@ package derep
 import (
 	"io"
 	"log"
-	"sync"
 
 	"github.com/biogo/biogo/io/seqio/fasta"
 	"github.com/biogo/biogo/seq/linear"
@@ -37,12 +36,10 @@ import (
 // cluster into the map.
 //
 // After the channel in is closed, DeRep writes the map to a file.
-func DeRep(in <-chan *linear.Seq, f io.Writer, min, max int, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func DeRep(in []*linear.Seq, f io.Writer, min, max int) {
 	rep := make(map[string]*cluster.Cluster)
 
-	for s := range in {
+	for _, s := range in {
 		c := cluster.ParseAnno(s)
 
 		if _, prs := rep[s.String()]; !prs {
