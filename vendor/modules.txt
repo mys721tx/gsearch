@@ -1,17 +1,23 @@
-# github.com/biogo/biogo v1.0.1
+# github.com/biogo/biogo v1.0.2
+## explicit
 github.com/biogo/biogo/align
-github.com/biogo/biogo/seq/linear
+github.com/biogo/biogo/alphabet
+github.com/biogo/biogo/feat
+github.com/biogo/biogo/io/seqio
 github.com/biogo/biogo/io/seqio/fasta
 github.com/biogo/biogo/seq
-github.com/biogo/biogo/alphabet
-github.com/biogo/biogo/io/seqio
-github.com/biogo/biogo/feat
+github.com/biogo/biogo/seq/linear
 # github.com/davecgh/go-spew v1.1.1
+## explicit
 github.com/davecgh/go-spew/spew
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/stretchr/objx v0.1.1
+## explicit
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.3.0
-github.com/stretchr/testify/mock
+# github.com/stretchr/testify v1.4.0
+## explicit
 github.com/stretchr/testify/assert
+github.com/stretchr/testify/mock
+# gopkg.in/yaml.v2 v2.2.2
+gopkg.in/yaml.v2
