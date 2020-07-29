@@ -2,7 +2,6 @@
 
 [![GoDoc](https://godoc.org/github.com/mys721tx/gsearch?status.svg)](https://godoc.org/github.com/mys721tx/gsearch)
 [![Build Status](https://travis-ci.com/mys721tx/gsearch.svg?branch=master)](https://travis-ci.com/mys721tx/gsearch)
-[![codecov](https://codecov.io/gh/mys721tx/gsearch/branch/master/graph/badge.svg)](https://codecov.io/gh/mys721tx/gsearch)
 [![CodeFactor](https://www.codefactor.io/repository/github/mys721tx/gsearch/badge)](https://www.codefactor.io/repository/github/mys721tx/gsearch)
 
 [vsearch](https://github.com/torognes/vsearch) implemented in Go.
